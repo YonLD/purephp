@@ -1,8 +1,12 @@
 # PurePHP with TailwindCSS Integration
 
+**Prerequisites**: [Components](/guide/components); **On this page**: combining Tailwind classes with PurePHP components.
+
 The combination of PurePHP and TailwindCSS provides a powerful development experience: component-based PHP templating engine paired with a utility-first CSS framework.
 
-*Reusable components in this guide are compiled shapes: static Tailwind class strings are written once at build time and per-request values arrive through slots. See [Compiled Components](/guide/compiled). The immediate tag API (`render()` / `print()`) remains available for snippets, and Tailwind finds the class names in both paths because they always live in PHP source.*
+::: tip Static classes, dynamic slots
+Reusable components in this guide are compiled shapes: static Tailwind class strings are written once at build time and per-request values arrive through slots. See [Components](/guide/components) and [Compiled Rendering](/guide/compiled). The immediate tag API (`render()` / `print()`) remains available for snippets, and Tailwind finds the class names in both paths because they always live in PHP source.
+:::
 
 ## Why Choose This Combination?
 
@@ -103,7 +107,6 @@ function Card(string $title, string $content, string $variant = 'default'): stri
     ]);
 }
 
-// Use component
 echo Card('Welcome to PurePHP', 'This is a card component styled with TailwindCSS', 'primary');
 ```
 
@@ -152,8 +155,6 @@ function ResponsiveGrid(array $items): string
 
     return $render(['items' => implode('', $cards)]);
 }
-
-// Use responsive grid
 echo ResponsiveGrid([
     ['title' => 'Project 1', 'description' => 'Description 1', 'image' => 'image1.jpg'],
     ['title' => 'Project 2', 'description' => 'Description 2', 'image' => 'image2.jpg'],
@@ -309,8 +310,6 @@ function ActionButton(
 
     return $render(['text' => $text]);
 }
-
-// Use dynamic button
 echo ActionButton('Primary Button', 'primary', 'lg');
 ```
 
@@ -373,42 +372,22 @@ function ThemeProvider(string $theme, iterable|string $toggle, iterable|string $
     return $render(['toggle' => $toggle, 'page' => $page]);
 }
 
-// Render the provider for the current theme
 echo ThemeProvider('dark', ThemeToggle('dark'), Page('Dashboard'));
 ```
 
-## Utility Functions
+## Merging Class Names
 
-### Class Name Merging Utility
+Use the built-in `clx()` helper (see [Utility Functions](/guide/utils)):
 
 ```php
 <?php
 
-function clsx(...$classes) {
-    $result = [];
+use function Pure\Utils\clx;
 
-    foreach ($classes as $class) {
-        if (is_string($class) && !empty(trim($class))) {
-            $result[] = trim($class);
-        } elseif (is_array($class)) {
-            foreach ($class as $key => $value) {
-                if (is_numeric($key) && is_string($value)) {
-                    $result[] = trim($value);
-                } elseif (is_string($key) && $value) {
-                    $result[] = trim($key);
-                }
-            }
-        }
-    }
-
-    return implode(' ', array_unique(array_filter($result)));
-}
-
-// Usage example
 $isActive = true;
 $hasError = false;
 
-$classes = clsx(
+$classes = clx(
     'base-class',
     'another-class',
     [
@@ -420,7 +399,6 @@ $classes = clsx(
 
 echo $classes; // Output: base-class another-class active
 ```
-
 
 ## Next Steps
 

@@ -1,12 +1,16 @@
 # Events
 
+**Prerequisites**: [Basic Usage](/guide/basic-usage); **On this page**: event attributes and browser-side handlers.
+
 This guide explains how to handle events in PurePHP components.
 
-*Event attributes such as `->onclick(...)` are part of the tag API and stay
+::: tip Event attributes are part of the tag API
+Event attributes such as `->onclick(...)` are part of the tag API and stay
 valid; they are static attributes, so they are set the same way on shapes. For
 pages, build shapes and compile them — see
-[Compiled Components](/guide/compiled). Most examples below use the tag API,
-which remains the immediate rendering path for snippets and debugging.*
+[Compiled Rendering](/guide/compiled). Most examples below use the tag API,
+which remains the immediate rendering path for snippets and debugging.
+:::
 
 ## Basic Event Handling
 
@@ -17,7 +21,8 @@ PurePHP supports all standard HTML events through attribute methods. Event handl
 
 use function Pure\HTML\{div, button, input};
 
-function BasicEvents() {
+function BasicEvents()
+{
     return div(
         button('Click me')
             ->onclick('handleClick()')
@@ -29,8 +34,6 @@ function BasicEvents() {
             ->class('input')
     )->class('events-container');
 }
-
-// Use the component
 BasicEvents()->print();
 ```
 
@@ -43,7 +46,8 @@ Handle various mouse interactions:
 
 use function Pure\HTML\div;
 
-function MouseEvents() {
+function MouseEvents()
+{
     return div('Hover and click me!')
         ->onclick('console.log("Clicked!")')
         ->onmouseover('this.style.backgroundColor = "#f0f0f0"')
@@ -53,8 +57,6 @@ function MouseEvents() {
         ->style('padding: 20px; border: 1px solid #ccc; cursor: pointer; transition: all 0.2s;')
         ->class('mouse-events');
 }
-
-// Use the component
 MouseEvents()->print();
 ```
 
@@ -67,7 +69,8 @@ Handle keyboard input:
 
 use function Pure\HTML\{div, input, p};
 
-function KeyboardEvents() {
+function KeyboardEvents()
+{
     return div(
         p('Type in the input below:'),
         input()
@@ -80,8 +83,6 @@ function KeyboardEvents() {
         p()->id('key-display')->style('margin-top: 10px; font-family: monospace;')
     )->class('keyboard-events');
 }
-
-// Use the component with JavaScript
 echo KeyboardEvents();
 ?>
 <script>
@@ -109,7 +110,8 @@ Handle form interactions:
 
 use function Pure\HTML\{form, div, label, input, button, p};
 
-function FormEvents() {
+function FormEvents()
+{
     return div(
         form(
             div(
@@ -139,8 +141,6 @@ function FormEvents() {
         p()->id('form-status')->style('margin-top: 10px; color: #666;')
     )->class('form-events');
 }
-
-// Use the component with JavaScript
 echo FormEvents();
 ?>
 <script>
@@ -170,7 +170,8 @@ Handle events efficiently using event delegation:
 
 use function Pure\HTML\{div, button};
 
-function EventDelegation() {
+function EventDelegation()
+{
     $buttons = [];
     for ($i = 1; $i <= 5; $i++) {
         $buttons[] = button("Button {$i}")
@@ -186,8 +187,6 @@ function EventDelegation() {
     ->onclick('handleDelegatedClick(event)')
     ->class('delegation-container');
 }
-
-// Use the component with JavaScript
 echo EventDelegation();
 ?>
 <script>
@@ -259,7 +258,7 @@ function handleChildClick(message) {
 
 The handler is compiled into the shape as a static attribute, so the handler
 name cannot come from request data. See
-[Compiled Components](/guide/compiled) for the full pipeline.
+[Compiled Rendering](/guide/compiled) for the full pipeline.
 
 ## Custom Event Attributes
 
@@ -270,7 +269,8 @@ Handle any HTML event attribute:
 
 use function Pure\HTML\{div, img};
 
-function CustomEventAttributes() {
+function CustomEventAttributes()
+{
     return div(
         div('Image with load event:'),
         img()
@@ -288,8 +288,6 @@ function CustomEventAttributes() {
             ->style('padding: 10px; border: 1px solid #ccc; margin: 10px 0;')
     )->class('custom-events');
 }
-
-// Use the component
 CustomEventAttributes()->print();
 ```
 
@@ -318,7 +316,8 @@ div(
 )->print();
 ?>
 <script>
-function handleComplexAction() {
+function handleComplexAction()
+{
     // Complex logic here
     console.log('Complex action executed');
     // ... more code
@@ -333,7 +332,8 @@ function handleComplexAction() {
 
 use function Pure\HTML\{div, button};
 
-function EventObjectExample() {
+function EventObjectExample()
+{
     return div(
         button('Get Event Info')
             ->onclick('showEventInfo(event)')
@@ -360,5 +360,5 @@ function showEventInfo(event) {
 ## Next Steps
 
 - [HTMX Integration](/guide/htmx) - Learn how to combine with HTMX
-- [Components](/guide/components) - Learn more about component development
-- [Props](/guide/props) - Understand props system
+- [Components](/guide/components) - Components wrap shapes
+- [Props and Slots](/guide/props) - Slot types and data binding

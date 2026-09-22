@@ -1,8 +1,12 @@
 # PurePHP with HTMX
 
+**Prerequisites**: [Components](/guide/components); **On this page**: dynamic interaction with HTMX, no client-side framework.
+
 PurePHP and HTMX form a powerful combination that allows you to build dynamic, responsive user interfaces while keeping your PHP backend clean and simple.
 
-*HTMX fragments are a natural fit for compiled shapes: `hx-*` attributes are ordinary static tag attributes, so they are set once on the shape, and the endpoint renders the same shape with request data. See [Compiled Components](/guide/compiled).*
+::: tip HTMX fragments fit compiled shapes
+HTMX fragments are a natural fit for compiled shapes: `hx-*` attributes are ordinary static tag attributes, so they are set once on the shape, and the endpoint renders the same shape with request data. See [Compiled Rendering](/guide/compiled).
+:::
 
 ## Why This Combination?
 
@@ -29,10 +33,9 @@ Then include HTMX in your HTML:
 The counter text is a bound slot; the endpoint renders the same `CounterValue`
 unit with the new count. Each component is its own unit:
 
-```php
+```php [components/CounterValue.cmp.php]
 <?php
 
-// components/CounterValue.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -52,10 +55,9 @@ register(CounterValue(...),
 );
 ```
 
-```php
+```php [components/Counter.cmp.php]
 <?php
 
-// components/Counter.cmp.php
 require_once __DIR__ . '/CounterValue.cmp.php';
 
 use Pure\Component\Call;
@@ -84,10 +86,9 @@ register(Counter(...),
 );
 ```
 
-```php
+```php [index.php]
 <?php
 
-// index.php
 require __DIR__ . '/components/Counter.cmp.php';
 
 // Render the page
@@ -110,7 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SERVER['REQUEST_URI'] === '/incre
 
 use function Pure\HTML\{button, div, li, ul};
 
-function TodoList() {
+function TodoList()
+{
     return div(
         ul()->id('todos'),
         button('Load More')
@@ -137,10 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($_SERVER['REQUEST_URI'], '/to
 The result list is a component; every result title is bound with `Slot::value()`,
 and the endpoint renders the list component with the search results:
 
-```php
+```php [components/SearchResult.cmp.php]
 <?php
 
-// components/SearchResult.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -160,10 +161,9 @@ register(SearchResult(...),
 );
 ```
 
-```php
+```php [components/ResultList.cmp.php]
 <?php
 
-// components/ResultList.cmp.php
 require_once __DIR__ . '/SearchResult.cmp.php';
 
 use Pure\Component\Call;
@@ -191,10 +191,9 @@ register(ResultList(...),
 );
 ```
 
-```php
+```php [components/SearchBox.cmp.php]
 <?php
 
-// components/SearchBox.cmp.php
 require_once __DIR__ . '/ResultList.cmp.php';
 
 use Pure\Component\Call;
@@ -225,10 +224,9 @@ register(SearchBox(...),
 );
 ```
 
-```php
+```php [index.php]
 <?php
 
-// index.php
 require __DIR__ . '/components/SearchBox.cmp.php';
 
 // Render the page with an empty result list
@@ -243,8 +241,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_SERVER['REQUEST_URI'] === '/search
     exit;
 }
 ```
-
-
 
 ## Next Steps
 

@@ -1,8 +1,12 @@
 # PurePHP 与 TailwindCSS 集成
 
+**前置**：[组件](/zh/guide/components)；**本页**：把 Tailwind 类与 PurePHP 组件结合。
+
 PurePHP 与 TailwindCSS 的结合为你提供了强大的开发体验：组件化的 PHP 模板引擎配合实用优先的 CSS 框架。
 
-*本指南中的可复用组件都是函数组件：静态 Tailwind 类字符串在构建时只写一次，每次请求的值通过槽位传入。参见[组件](/zh/guide/components)与[编译组件](/zh/guide/compiled)。即时标签 API（`render()` / `print()`）仍然可用于代码片段，Tailwind 在两条路径中都能找到类名，因为它们始终位于 PHP 源码中。*
+::: tip 静态类与动态 Slot
+本指南中的可复用组件都编译 Shape：静态 Tailwind 类字符串在构建时只写一次，每次请求的值通过 Slot 传入。参见[组件](/zh/guide/components)与[编译渲染](/zh/guide/compiled)。即时标签 API（`render()` / `print()`）仍然可用于代码片段，Tailwind 在两条路径中都能找到类名，因为它们始终位于 PHP 源码中。
+:::
 
 ## 为什么选择这个组合？
 
@@ -67,7 +71,7 @@ npx tailwindcss -i ./src/input.css -o ./public/output.css --watch
 
 ### 简单组件
 
-变体决定静态类列表，因此每种变体各自记忆化一个 renderer；标题与内容是动态的，成为槽位：
+变体决定静态类列表，因此每种变体各自记忆化一个 renderer；标题与内容是动态的，成为 Slot：
 
 ```php
 <?php
@@ -102,7 +106,6 @@ function Card(string $title, string $content, string $variant = 'default'): stri
     ]);
 }
 
-// 使用组件
 echo Card('Welcome to PurePHP', 'This is a card component styled with TailwindCSS', 'primary');
 ```
 
@@ -151,7 +154,6 @@ function ResponsiveGrid(array $items): string
     return $render(['items' => implode('', $cards)]);
 }
 
-// 使用响应式网格
 echo ResponsiveGrid([
     ['title' => 'Project 1', 'description' => 'Description 1', 'image' => 'image1.jpg'],
     ['title' => 'Project 2', 'description' => 'Description 2', 'image' => 'image2.jpg'],
@@ -305,7 +307,6 @@ function ActionButton(
     return $render(['text' => $text]);
 }
 
-// 使用动态按钮
 echo ActionButton('Primary Button', 'primary', 'lg');
 ```
 
@@ -366,42 +367,22 @@ function ThemeProvider(string $theme, iterable|string $toggle, iterable|string $
     return $render(['toggle' => $toggle, 'page' => $page]);
 }
 
-// 为当前主题渲染提供者
 echo ThemeProvider('dark', ThemeToggle('dark'), Page('Dashboard'));
 ```
 
-## 工具函数
+## 类名合并
 
-### 类名合并工具
+用内置的 `clx()` 合并类名（详见[工具函数](/zh/guide/utils)）：
 
 ```php
 <?php
 
-function clsx(...$classes) {
-    $result = [];
+use function Pure\Utils\clx;
 
-    foreach ($classes as $class) {
-        if (is_string($class) && !empty(trim($class))) {
-            $result[] = trim($class);
-        } elseif (is_array($class)) {
-            foreach ($class as $key => $value) {
-                if (is_numeric($key) && is_string($value)) {
-                    $result[] = trim($value);
-                } elseif (is_string($key) && $value) {
-                    $result[] = trim($key);
-                }
-            }
-        }
-    }
-
-    return implode(' ', array_unique(array_filter($result)));
-}
-
-// 使用示例
 $isActive = true;
 $hasError = false;
 
-$classes = clsx(
+$classes = clx(
     'base-class',
     'another-class',
     [
@@ -413,7 +394,6 @@ $classes = clsx(
 
 echo $classes; // 输出: base-class another-class active
 ```
-
 
 ## 下一步
 

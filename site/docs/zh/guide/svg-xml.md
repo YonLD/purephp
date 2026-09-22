@@ -1,8 +1,12 @@
 # SVG 和 XML 支持
 
+**前置**：[基本用法](/zh/guide/basic-usage)；**本页**：SVG 图形与 XML 文档的构建和编译导出。
+
 PurePHP 为创建 SVG 图形和 XML 文档提供全面支持，使用与 HTML 相同的优雅语法。
 
-*HTML、SVG 和 XML 标签实例都继承自 `Tag`，因此它们中的任何一个都可以包装进 `Compile::shape()` 并用数据渲染——参见[编译组件](/zh/guide/compiled)。下面的 SVG 部分属于标签 API 参考，使用 `render()` / `print()` 即时渲染；XML 部分使用编译路径。*
+::: tip SVG 与 XML 的两条路径
+HTML、SVG 和 XML 标签实例都继承自 `Tag`，因此它们中的任何一个都可以包装进 `Compile::shape()` 并用数据渲染——参见[编译渲染](/zh/guide/compiled)。下面的 SVG 部分属于标签 API 参考，使用 `render()` / `print()` 即时渲染；XML 部分使用编译路径。
+:::
 
 ## SVG 支持
 
@@ -34,6 +38,15 @@ echo $graphic; // 输出 SVG 标记
 
 ### 函数 vs 魔术静态方法
 
+**使用函数当：**
+- 标签属于预定义的 HTML/SVG 标签
+- 需要处理动态值（子节点与属性）
+
+**使用魔术静态方法当：**
+- 创建自定义或非标准标签
+- 使用动态标签名
+
+两者构建的都是同一个 `Tag` 对象；函数只是常用标签名的薄而明确的包装。
 自定义标签使用魔术静态接口：
 
 ```php
@@ -59,6 +72,8 @@ $webComponent = SVG::{$tag}()
 ```php
 <?php
 
+use Pure\Core\SVG;
+
 use function Pure\SVG\{svg, path, g};
 
 function ChevronIcon($direction = 'right'): SVG
@@ -81,7 +96,6 @@ function ChevronIcon($direction = 'right'): SVG
     )->width('24')->height('24')->viewBox('0 0 24 24');
 }
 
-// 使用
 echo ChevronIcon('down')->class('icon');
 ```
 
@@ -108,7 +122,7 @@ $animatedCircle = SVG::svg(
 
 ## XML 支持
 
-XML 标签同样继承自 `Tag`，因此文档以编译形状构建：树及其槽位每个进程只创建一次，每次导出时绑定数据并保存或打印。
+XML 标签同样继承自 `Tag`，因此文档以编译 Shape 构建：树及其 Slot 每个进程只创建一次，每次导出时绑定数据并保存或打印。
 
 ### 编译 XML 文档
 
@@ -168,7 +182,7 @@ echo Customers([
 
 ### 数据驱动的元素
 
-标签名在构建时固定，因此动态的键和值成为槽位——这里是设置列表上的 `key` 属性和文本内容：
+标签名在构建时固定，因此动态的键和值成为 Slot——这里是设置列表上的 `key` 属性和文本内容：
 
 ```php
 <?php
@@ -192,34 +206,7 @@ $config->print(['settings' => [
 ]]);
 ```
 
-当结构本身必须随数据变化时，请使用 `Slot::if()` 或在数据层分派；形状的标签集合无法变化。
-
-## 性能考虑
-
-### 函数 vs 魔术静态方法
-
-**使用函数当：**
-- 标签属于预定义的 HTML/SVG 标签
-- 需要处理动态值（子节点与属性）
-
-**使用魔术静态方法当：**
-- 创建自定义或非标准标签
-- 使用动态标签名
-
-两者构建的都是同一个 `Tag` 对象；函数只是常用标签名的薄而明确的包装：
-
-```php
-<?php
-
-use Pure\Core\HTML;
-
-// 自定义标签名
-$element1 = HTML::customTag('content')->customAttr('value');
-
-// 预定义标签通过它的函数
-use function Pure\HTML\div;
-$element2 = div('content')->customAttr('value');
-```
+当结构本身必须随数据变化时，请使用 `Slot::if()` 或在数据层分派；Shape 的标签集合无法变化。
 
 ## 重要：字符串内容会被转义
 

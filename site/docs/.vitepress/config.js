@@ -34,20 +34,31 @@ export default {
           text: '介绍',
           items: [
             { text: '什么是 PurePHP?', link: '/zh/guide/' },
-            { text: '快速开始', link: '/zh/guide/getting-started' },
-            { text: '编译组件', link: '/zh/guide/compiled' }
+            { text: '快速开始', link: '/zh/guide/getting-started' }
           ]
         },
         {
           text: '基础',
           items: [
-            { text: '基本概念', link: '/zh/guide/concepts' },
             { text: '基本用法', link: '/zh/guide/basic-usage' },
-            { text: 'SVG 和 XML 支持', link: '/zh/guide/svg-xml' },
-            { text: '工具函数', link: '/zh/guide/utils' },
+            { text: '基本概念', link: '/zh/guide/concepts' },
+            { text: 'Props 与 Slot', link: '/zh/guide/props' }
+          ]
+        },
+        {
+          text: '核心',
+          items: [
             { text: '组件', link: '/zh/guide/components' },
-            { text: '属性', link: '/zh/guide/props' },
-            { text: '事件', link: '/zh/guide/events' }
+            { text: '编译渲染', link: '/zh/guide/compiled' },
+            { text: '产物与部署', link: '/zh/guide/artifacts' }
+          ]
+        },
+        {
+          text: '进阶',
+          items: [
+            { text: '事件', link: '/zh/guide/events' },
+            { text: 'SVG 和 XML 支持', link: '/zh/guide/svg-xml' },
+            { text: '工具函数', link: '/zh/guide/utils' }
           ]
         },
         {
@@ -74,7 +85,7 @@ export default {
             { text: 'SVG 类', link: '/zh/api/svg' },
             { text: 'XML 类', link: '/zh/api/xml' },
             { text: 'Raw 类', link: '/zh/api/raw' },
-            { text: '编译渲染', link: '/zh/api/compile' }
+            { text: 'Compile API', link: '/zh/api/compile' }
           ]
         }
       ],
@@ -84,20 +95,31 @@ export default {
           text: 'Introduction',
           items: [
             { text: 'What is PurePHP?', link: '/guide/' },
-            { text: 'Quick Start', link: '/guide/getting-started' },
-            { text: 'Compiled Components', link: '/guide/compiled' }
+            { text: 'Quick Start', link: '/guide/getting-started' }
           ]
         },
         {
           text: 'Basics',
           items: [
-            { text: 'Core Concepts', link: '/guide/concepts' },
             { text: 'Basic Usage', link: '/guide/basic-usage' },
-            { text: 'SVG and XML Support', link: '/guide/svg-xml' },
-            { text: 'Utility Functions', link: '/guide/utils' },
+            { text: 'Core Concepts', link: '/guide/concepts' },
+            { text: 'Props and Slots', link: '/guide/props' }
+          ]
+        },
+        {
+          text: 'Core',
+          items: [
             { text: 'Components', link: '/guide/components' },
-            { text: 'Props', link: '/guide/props' },
-            { text: 'Events', link: '/guide/events' }
+            { text: 'Compiled Rendering', link: '/guide/compiled' },
+            { text: 'Artifacts & Deployment', link: '/guide/artifacts' }
+          ]
+        },
+        {
+          text: 'Advanced',
+          items: [
+            { text: 'Events', link: '/guide/events' },
+            { text: 'SVG and XML Support', link: '/guide/svg-xml' },
+            { text: 'Utility Functions', link: '/guide/utils' }
           ]
         },
         {

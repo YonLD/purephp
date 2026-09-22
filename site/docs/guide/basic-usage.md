@@ -1,8 +1,10 @@
 # Basic Usage
 
-This guide introduces the core concepts and basic usage of PurePHP.
+**Prerequisites**: [Quick Start](/guide/getting-started); **On this page**: the tag API — creating elements, setting attributes, immediate rendering.
 
-*This page documents the tag API used for snippets, prototypes, and debugging; trees built this way render immediately via `render()` / `print()`. Production pages should compile shapes instead — see [Compiled Components](/guide/compiled).*
+::: tip Tag API vs. compiled rendering
+This page documents the tag API used for snippets, prototypes, and debugging; trees built this way render immediately via `render()` / `print()`. Production pages should compile shapes instead — see [Compiled Rendering](/guide/compiled).
+:::
 
 ## Basic Syntax
 
@@ -156,7 +158,7 @@ div('Content')->className('container')->print();
 
 ### 3. Built-in Utility Functions
 
-The `class` method has built-in `clx` function, and `style` method has built-in `sty` function to handle arrays and conditional parameters:
+The `class()` method has a built-in `clx` function, and `style()` has a built-in `sty` function to handle arrays and conditional parameters:
 
 ```php
 <?php
@@ -166,23 +168,14 @@ use function Pure\HTML\div;
 $isActive = true;
 $isLarge = false;
 
-// class method automatically uses clx
 div('Content')
     ->class('btn', $isActive ? 'active' : null, $isLarge ? 'large' : null)
     ->style(['color' => 'red', 'font-size' => '16px'])
     ->print();
-
-// Equivalent to manually using utility functions
-use function Pure\Utils\{clx, sty};
-
-$classes = clx('btn', $isActive ? 'active' : null, $isLarge ? 'large' : null);
-$styles = sty(['color' => 'red', 'font-size' => '16px']);
-
-div('Content')
-    ->class($classes)
-    ->style($styles)
-    ->print();
 ```
+
+When you need to merge class/style strings on their own, reach for `clx()` /
+`sty()` from [Utility Functions](/guide/utils).
 
 ### 4. Attribute Naming Rules
 
@@ -417,8 +410,8 @@ div('Content')
 
 ## Next Steps
 
-- [Compiled Components](/guide/compiled) - Compile shapes for production rendering
+- [Core Concepts](/guide/concepts) - Tag trees, shapes, slots and components
+- [Props and Slots](/guide/props) - Slot types and the data-binding reference
+- [Components](/guide/components) - Components wrap shapes
+- [Compiled Rendering](/guide/compiled) - How a component's template compiles
 - [SVG and XML Support](/guide/svg-xml) - Learn about SVG graphics and XML documents
-- [Utility Functions](/guide/utils) - Learn about built-in utility functions
-- [Components](/guide/components) - Learn how to create and use components
-- [TailwindCSS Integration](/guide/tailwindcss) - Learn how to use with TailwindCSS

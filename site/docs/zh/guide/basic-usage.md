@@ -1,8 +1,11 @@
 # 基础用法
 
-本指南将介绍 PurePHP 的核心概念和基本用法。
+**前置**：[快速开始](/zh/guide/getting-started)；**本页**：标签 API——创建元素、设置属性与即时渲染。
 
-*本页介绍用于代码片段、原型和调试的标签 API；以此方式构建的树通过 `render()` / `print()` 即时渲染。生产页面应改为编译形状——参见[编译组件](/zh/guide/compiled)。*
+::: tip 标签 API 与编译渲染
+本页介绍用于代码片段、原型和调试的标签 API；以此方式构建的树通过 `render()` / `print()`
+即时渲染。生产页面应改为编译 Shape——参见[编译渲染](/zh/guide/compiled)。
+:::
 
 ## 基本语法
 
@@ -164,23 +167,13 @@ use function Pure\HTML\div;
 $isActive = true;
 $isLarge = false;
 
-// class 方法自动使用 clx 处理
 div('Content')
     ->class('btn', $isActive ? 'active' : null, $isLarge ? 'large' : null)
     ->style(['color' => 'red', 'font-size' => '16px'])
     ->print();
-
-// 等同于手动使用工具函数
-use function Pure\Utils\{clx, sty};
-
-$classes = clx('btn', $isActive ? 'active' : null, $isLarge ? 'large' : null);
-$styles = sty(['color' => 'red', 'font-size' => '16px']);
-
-div('Content')
-    ->class($classes)
-    ->style($styles)
-    ->print();
 ```
+
+需要单独合并类名/样式字符串时，再用[工具函数](/zh/guide/utils)里的 `clx()` / `sty()`。
 
 ### 4. 属性命名规则
 
@@ -296,7 +289,7 @@ div(
 )->class('message')->print();
 ```
 
-在编译渲染中，条件会成为一个 `Slot::if()` 占位符，各分支则是形状。诸如 `Slot::value()` 这类槽位用于代表在渲染时绑定的值：
+在编译渲染中，条件会成为一个 `Slot::if()` 占位符，各分支则是 Shape。诸如 `Slot::value()` 这类 Slot 用于代表在渲染时绑定的值：
 
 ```php
 <?php
@@ -343,7 +336,7 @@ ul(
 )->class('fruits')->print();
 ```
 
-在编译渲染中，列表是 `Slot::each()` 槽位：条目形状会为所绑定可迭代对象的每个元素渲染，`Slot::value()` 标记要绑定的值：
+在编译渲染中，列表是 `Slot::each()` Slot：条目 Shape 会为所绑定可迭代对象的每个元素渲染，`Slot::value()` 标记要绑定的值：
 
 ```php
 <?php
@@ -370,7 +363,7 @@ echo Fruits([
 ]);
 ```
 
-每个元素都是一个数组，提供条目形状所使用的槽位名；请求只向已编译好的 renderer 绑定数据。
+每个元素都是一个数组，提供条目 Shape 所使用的 Slot 名；请求只向已编译好的 renderer 绑定数据。
 
 ## 样式处理
 
@@ -409,8 +402,8 @@ div('Content')
 
 ## 下一步
 
-- [编译组件](/zh/guide/compiled) - 为生产渲染编译形状
+- [基本概念](/zh/guide/concepts) - Tag、Shape、Slot 与组件
+- [Props 与 Slot](/zh/guide/props) - Slot 类型与数据绑定参考
+- [组件](/zh/guide/components) - Component 是 Shape 的包装与高级用法
+- [编译渲染](/zh/guide/compiled) - 组件模板如何编译
 - [SVG 和 XML 支持](/zh/guide/svg-xml) - 了解 SVG 图形和 XML 文档
-- [工具函数](/zh/guide/utils) - 了解内置的工具函数
-- [组件](/zh/guide/components) - 学习如何创建和使用组件
-- [TailwindCSS 集成](/zh/guide/tailwindcss) - 了解如何与 TailwindCSS 配合使用

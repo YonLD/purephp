@@ -1,5 +1,7 @@
 # Props and Slots
 
+**Prerequisites**: [Core Concepts](/guide/concepts); **On this page**: slot types, modifiers and the data-binding reference.
+
 In PurePHP, "props" come in two forms:
 
 - **Static props** — values known while the component is built (function
@@ -7,7 +9,7 @@ In PurePHP, "props" come in two forms:
 - **Dynamic props** — values bound at render time: `Slot` placeholders.
 
 This page is the data-binding reference; see
-[Compiled Components](/guide/compiled) for the rendering pipeline itself.
+[Compiled Rendering](/guide/compiled) for the rendering pipeline itself.
 
 ## Static Props
 
@@ -199,6 +201,7 @@ missing required key will fail loudly with the full path at render time.
 
 ## Next Steps
 
-- [Compiled Components](/guide/compiled) - Lists, conditionals, caching and limitations
+- [Components](/guide/components) - Components wrap shapes
+- [Compiled Rendering](/guide/compiled) - Lists, conditionals, caching and limitations
+- [Artifacts & Deployment](/guide/artifacts) - `pure compile` artifacts and production deployment
 - [Core Concepts](/guide/concepts) - Shapes, scopes and compiling
-- [Events](/guide/events) - Event attributes and browser-side handlers

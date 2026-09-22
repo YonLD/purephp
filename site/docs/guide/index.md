@@ -1,13 +1,23 @@
 # What is PurePHP?
 
+**Prerequisites**: none; **On this page**: the two rendering paths and the recommended learning order.
+
 PurePHP is a PHP template engine inspired by ReactJS functional components. You describe a UI as a tree of PHP objects that look like HTML, and PurePHP turns it into an HTML string — everything is 100% native PHP, no template syntax to learn.
 
 PurePHP has two rendering paths:
 
 | Path | What you write | When to use |
 | --- | --- | --- |
-| **Compiled rendering** | A data-free *shape* tree with `Slot` placeholders, compiled once per worker process (or loaded from the renderer cache) and rendered per request with plain data | Pages and components in production |
+| **Compiled rendering** | A component's data-free *template* (a shape) with `Slot` placeholders, compiled once per worker process (or loaded from the renderer cache) and rendered per request with plain data | Pages and components in production |
 | **Immediate rendering** | A tag tree containing the real values, rendered on the spot with `render()` / `print()` | Snippets, prototypes, CLI tools and debugging |
+
+**Learning order**: the [Quick Start](/guide/getting-started) gets you to a
+working component; [Core Concepts](/guide/concepts) and
+[Props and Slots](/guide/props) name what is underneath — a component wraps a
+data-free *shape* of `Slot` placeholders — and
+[Compiled Rendering](/guide/compiled) with
+[Artifacts & Deployment](/guide/artifacts) covers how that template compiles
+and ships.
 
 ## Why Choose PurePHP?
 
@@ -20,43 +30,42 @@ In traditional PHP development, the view layer often requires mixing HTML, PHP c
 
 ## Compiled Rendering
 
-Describe the page once, bind data at render time:
+A component's template is a data-free tree, compiled once per worker process
+(or loaded from the renderer cache) and rendered per request with plain data:
 
-```php
+```php [components/Card.cmp.php]
 <?php
 
-use Pure\Compile\Compile;
-use Pure\Core\HTML;
+use Pure\Component\Call;
 use Pure\Core\Slot;
 
-use function Pure\HTML\{div, h1, p};
+use function Pure\Component\{component, register};
+use function Pure\HTML\{div, h2, p};
 
-function pageView(array $data): string
+function Card(mixed ...$children): Call
 {
-    static $render;
-    $render ??= Compile::shape(
-        div(
-            h1(Slot::value('heading')),
-            p(Slot::value('lead'))
-        )->class('container')
-    );
-
-    // No document header is added by the engine; prepend it here.
-    return HTML::DOCUMENT_HEADER . $render([
-        'heading' => $data['heading'],
-        'lead' => $data['lead'],
-    ]);
+    return component(__FUNCTION__, ...$children);
 }
 
-echo pageView(['heading' => 'Welcome to PurePHP', 'lead' => 'A PHP template engine']);
+register(Card(...),
+    factory: static fn () => div(
+        h2(Slot::value('title')),
+        p(Slot::value('content'))
+    )->class('card'),
+    prepare: static function (string $title, string $content): array {
+        return ['title' => $title, 'content' => $content];
+    }
+);
+
+echo Card()->title('Title')->content('Content');
 ```
 
-The renderer is memoized in a `static` variable and compiled once per process —
-in long-running workers. Under standard PHP-FPM every request starts fresh, so
-enable `Compile::cachePath()` or precompile the template with
-`vendor/bin/pure compile` so requests load the artifact instead of rebuilding
-it. See [Components](/guide/components) and
-[Compiled Components](/guide/compiled) for lists, conditionals and caching.
+`register()` stores the factory lazily; a request with a fresh artifact loads
+compiled code instead of rebuilding the template. Under standard PHP-FPM every
+request starts fresh, so enable `Compile::cachePath()` or precompile with
+`vendor/bin/pure compile`. See [Components](/guide/components) for composition,
+[Compiled Rendering](/guide/compiled) for caching and
+[Artifacts & Deployment](/guide/artifacts) for deployment.
 
 ## Immediate Rendering
 
@@ -82,7 +91,10 @@ div(
 
 ## Next Steps
 
-- [Quick Start](/guide/getting-started) - Learn how to create your first PurePHP application
-- [Compiled Components](/guide/compiled) - Build pages and components the production way
-- [Core Concepts](/guide/concepts) - Understand PurePHP fundamentals
-- [Basic Usage](/guide/basic-usage) - Learn the tag API used by snippets
+- [Quick Start](/guide/getting-started) - Install and run your first component
+- [Basic Usage](/guide/basic-usage) - The tag API used by snippets
+- [Core Concepts](/guide/concepts) - Tag trees, shapes, slots and components
+- [Props and Slots](/guide/props) - Slot types and the data-binding reference
+- [Components](/guide/components) - Components wrap shapes
+- [Compiled Rendering](/guide/compiled) - How a component's template compiles
+- [Artifacts & Deployment](/guide/artifacts) - `pure compile` artifacts and production deployment

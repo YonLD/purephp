@@ -21,8 +21,8 @@ PurePHP 由几个核心类组成，它们协同工作提供强大的模板系统
 ### [Raw 类](/zh/api/raw)
 表示绕过转义的原始 HTML 或 XML 内容。用于包含预格式化内容或模板。
 
-### [编译渲染](/zh/api/compile)
-`Pure\Compile\Compile`、`Shape` 与 `Renderer` 把带 `Slot` 占位符的无数据形状树编译成扁平 PHP 渲染器。静态标记变成字面量，渲染速度与编译型模板引擎持平，同时保留流式 PHP API。
+### [Compile API](/zh/api/compile)
+`Pure\Compile\Compile`、`Shape` 与 `Renderer` 把带 `Slot` 占位符的无数据 Shape 树编译成扁平 PHP 渲染器。静态标记变成字面量，渲染速度与编译型模板引擎持平，同时保留流式 PHP API。
 
 ## 快速参考
 
@@ -42,7 +42,7 @@ $element1 = div('Content');
 $element2 = HTML::customTag('Content');
 ```
 
-### 编译形状
+### 编译 Shape
 
 ```php
 <?php
@@ -75,7 +75,7 @@ $shape->print(['title' => 'Hello']);
 
 ### 性能指南
 
-- **每个进程只编译一次形状** —— 用 `static $shape ??= Compile::shape(...)` 记忆化（标准 PHP-FPM 下请启用 `Compile::cachePath()`，让请求加载渲染器而不是重建）
+- **每个进程只编译一次 Shape** —— 用 `static $shape ??= Compile::shape(...)` 记忆化（标准 PHP-FPM 下请启用 `Compile::cachePath()`，让请求加载渲染器而不是重建）
 - **使用函数** 用于标准 HTML/SVG 标签
 - **使用魔术方法** 用于自定义或动态标签
 - **使用 Raw 类** 用于预格式化内容
@@ -100,5 +100,5 @@ Pure\Core\Slot         (数据占位符)
 ## 下一步
 
 - 浏览各个类文档以获取详细示例
-- 阅读[编译组件指南](/zh/guide/compiled)了解生产路径
+- 阅读[编译渲染](/zh/guide/compiled)与[产物与部署](/zh/guide/artifacts)了解生产路径
 - 参见 [SVG 和 XML 支持](/zh/guide/svg-xml) 了解图形和数据处理

@@ -1,6 +1,10 @@
 # 快速开始
 
-本指南将帮助你安装 PurePHP 并创建你的第一个应用。
+**前置**：无；**本页**：安装 PurePHP，跑通第一个组件。
+
+本指南帮助你安装 PurePHP 并创建第一个应用：一个**组件**——一个文件里放调用函数与一棵
+不含数据的模板，动态值是 **Slot** 占位符，类型化契约写在 `prepare()` 钩子里。PurePHP 中
+一切数据驱动的输出都用这种方式构建；代码片段也可以像下面的安装验证那样即时渲染。
 
 ## 环境要求
 
@@ -21,7 +25,7 @@ composer require yonld/purephp
 
 创建一个简单的测试文件 `test.php`：
 
-```php
+```php [test.php]
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -40,7 +44,8 @@ div(
 php test.php
 ```
 
-如果看到 HTML 输出，说明安装成功。注意这里使用的是即时渲染——它适合快速检查，但页面应当编译形状（见下文）。
+如果看到 HTML 输出，说明安装成功。注意这里使用的是即时渲染——它适合快速检查；下面的应用
+以组件渲染。
 
 ## 创建第一个应用
 
@@ -52,104 +57,13 @@ cd my-purephp-app
 composer require yonld/purephp
 ```
 
-### 2. 创建单元与入口文件
+### 2. 创建第一个组件
 
-创建 `views/page.cmp.php`，即组件单元——注册的模板、`prepare()` 钩子里的类型化 prop
-契约，加上调用函数：
+创建 `components/Card.cmp.php`。模板是一棵不含数据的树：动态值是 `Slot` 占位符，由
+`prepare()` 钩子的类型化 props 绑定：
 
-```php
+```php [components/Card.cmp.php]
 <?php
-
-// views/page.cmp.php
-use Pure\Component\Call;
-use Pure\Core\Slot;
-
-use function Pure\Component\{component, register};
-use function Pure\HTML\{div, h1, p};
-
-function Page(mixed ...$children): Call
-{
-    return component(__FUNCTION__, ...$children);
-}
-
-register(Page(...),
-    factory: static fn () =>
-        div(
-            h1(Slot::value('heading')),
-            p(Slot::value('lead')),
-            p(Slot::value('body'))
-        )->class('container'),
-    prepare: static function (string $heading, string $lead, string $body): array {
-        return ['heading' => $heading, 'lead' => $lead, 'body' => $body];
-    }
-);
-```
-
-再创建 `index.php`，即入口文件，它加载单元并渲染：
-
-```php
-<?php
-
-// index.php
-require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/views/page.cmp.php';
-
-use function Pure\Utils\renderHTML;
-
-echo renderHTML(Page()
-    ->heading('My First PurePHP Application')
-    ->lead('Welcome to PurePHP!')
-    ->body('This is a simple yet powerful PHP template engine.'));
-```
-
-单元必须有自己的 `*.cmp.php` 文件——`pure compile` 只发现这类文件，注册名从调用函数派生、
-解析到的正是该文件。`component()` 通过按名字或路径缓存的绑定器解析单元，模板每进程只加载一次；
-文档声明由调用方
-拼接。标准 PHP-FPM 下请启用 `Compile::cachePath()`，让请求加载已编译的渲染器而不是重新构建；
-或者用 `vendor/bin/pure compile .` 预编译，让绑定器直接加载产物。
-
-### 3. 运行应用
-
-在浏览器中打开 `index.php`，或使用 PHP 内置服务器：
-
-```bash
-php -S localhost:8000
-```
-
-然后访问 `http://localhost:8000`，查看你的第一个 PurePHP 应用！
-
-### 4. 启用开发期 guard
-
-开发期间请启用 guard，让输出中看不出来的问题被报告出来，而不是悄悄拖慢页面或渲染为空：
-
-```php
-// index.php，首次渲染之前
-Compile::guard(true);           // 或设置 PURE_COMPILE_GUARD=1
-```
-
-它在单个进程内每个对象只发出一次 `E_USER_WARNING`：
-
-- 每请求重建形状：同一调用点在一个进程内第 20 次调用 `Compile::shape()` 时就会警告，
-  例如每次调用都重建的内联 `Compile::shape(...)`。文件形式的组件走 `component()`，
-  绑定器按名字或路径缓存，不会反复编译；
-- 模板从未读取的 binding：会给出 `did you mean` 建议，因此拼错的键名（`titel`）
-  不会被静默忽略；
-- 与标准属性名只差一个字符的属性方法（`->clas(...)`、`->hreff(...)`），否则它们会
-  静默变成没人注意的自定义属性。
-
-## 基础示例
-
-### 使用组件
-
-组件是一个 `*.cmp.php` 单元：返回 `Pure\Component\Call` 的调用函数，紧挨着它渲染的模板，
-以及放在 `prepare()` 钩子里的类型化 prop 契约：
-
-```php
-<?php
-
-// Card.cmp.php
-
-require 'vendor/autoload.php';
 
 use Pure\Component\Call;
 use Pure\Core\Slot;
@@ -163,55 +77,55 @@ function Card(mixed ...$children): Call
 }
 
 register(Card(...),
-    factory: static fn () =>
-        div(
-            h2(Slot::value('title')),
-            p(Slot::value('content'))
-        )->class(Slot::value('class')),
-    prepare: static function (string $title, string $content, string $class = 'card'): array {
-        return ['title' => $title, 'content' => $content, 'class' => $class];
+    factory: static fn () => div(
+        h2(Slot::value('title')),
+        p(Slot::value('content'))
+    )->class('card'),
+    prepare: static function (string $title, string $content): array {
+        return ['title' => $title, 'content' => $content];
     }
 );
 
-// 用数据渲染组件
-echo Card()->title('Card Title')->content('This is the card content');
+echo Card()->title('Title')->content('Content');
 ```
 
-### 设置属性
+- `Slot::value('title')` 是占位符：渲染时从同名 prop 取值，转义后填入该位置；
+- `register(Card(...))` 从调用函数派生名字与文件、只惰性保存工厂，不构建任何东西；
+- `prepare()` 是类型化 prop 契约：PHP 强制参数类型，返回的数组绑定模板。
 
-静态属性设置在形状上；动态属性使用 `Slot::value()`：
+### 3. 运行应用
 
-```php
-<?php
-
-use Pure\Compile\Compile;
-use Pure\Core\Slot;
-
-use function Pure\HTML\div;
-
-$shape = Compile::shape(
-    div('Content')->class('container')->id(Slot::value('id'))
-);
-
-$shape(['id' => 'main-content']);
+```bash
+php components/Card.cmp.php
 ```
 
-对于代码片段——即立即渲染的小片段——你可以继续使用标签 API 与 `print()`：
+输出：
 
-```php
-<?php
-
-use function Pure\HTML\div;
-
-div('Content')
-    ->class('container')
-    ->style('background: #f0f0f0; padding: 20px;')
-    ->data_id('main-content')
-    ->print();
+```html
+<div class="card"><h2>Title</h2><p>Content</p></div>
 ```
+
+真实应用中单元放在自己的文件里，控制器 `require` 它并用请求数据调用组件——见
+[组件](/zh/guide/components)。
+
+### 4. 下一步：走向生产
+
+上面的写法每次都会重新构建模板，适合学习与试验。生产环境还需要三件事：
+
+- **磁盘缓存与预编译产物**——`Compile::cachePath()` 与 `pure compile`，见
+  [产物与部署](/zh/guide/artifacts)；
+- **开发期 guard**——报告每请求重建、拼错的 binding 等问题，见
+  [编译渲染](/zh/guide/compiled#缓存)；
+- **静态契约检查**——`pure check` 在 CI 中校验 props 与 Slot，见
+  [契约检查](/zh/guide/artifacts#契约检查)。
 
 ## 下一步
 
-- [编译组件](/zh/guide/compiled) - 组件、列表、条件与缓存
-- [基本概念](/zh/guide/concepts) - 理解 PurePHP 的基础知识
-- [Props 与槽位](/zh/guide/props) - 学习数据如何绑定到形状
+按顺序学习：
+
+- [基本用法](/zh/guide/basic-usage) - 标签 API：片段、原型与调试
+- [基本概念](/zh/guide/concepts) - Tag、Shape、Slot 与组件
+- [Props 与 Slot](/zh/guide/props) - Slot 类型与数据绑定参考
+- [组件](/zh/guide/components) - 组合、prop 契约与页面
+- [编译渲染](/zh/guide/compiled) - 组件模板如何编译
+- [产物与部署](/zh/guide/artifacts) - `pure compile` 产物与生产部署

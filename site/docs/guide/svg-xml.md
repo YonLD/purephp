@@ -1,8 +1,12 @@
 # SVG and XML Support
 
+**Prerequisites**: [Basic Usage](/guide/basic-usage); **On this page**: building SVG graphics and XML documents, and compiling them for export.
+
 PurePHP provides comprehensive support for creating SVG graphics and XML documents with the same elegant syntax as HTML.
 
-*HTML, SVG and XML tag instances all extend `Tag`, so any of them can be wrapped in `Compile::shape()` and rendered with data — see [Compiled Components](/guide/compiled). The SVG sections below are a tag-API reference and render immediately with `render()` / `print()`; the XML sections use the compiled path.*
+::: tip Two paths for SVG and XML
+HTML, SVG and XML tag instances all extend `Tag`, so any of them can be wrapped in `Compile::shape()` and rendered with data — see [Compiled Rendering](/guide/compiled). The SVG sections below are a tag-API reference and render immediately with `render()` / `print()`; the XML sections use the compiled path.
+:::
 
 ## SVG Support
 
@@ -35,7 +39,16 @@ echo $graphic; // Outputs SVG markup
 
 ### Functions vs Magic Static Methods
 
-Custom tags use the magic static surface:
+**Use functions when:**
+- The tag is one of the predefined HTML/SVG tags
+- Working with dynamic values (children and attributes)
+
+**Use magic static methods when:**
+- Creating custom or non-standard tags
+- Working with dynamic tag names
+
+Both build the same `Tag` object; the functions are the thin, explicit wrapper
+for the common names. Custom tags use the magic static surface:
 
 ```php
 <?php
@@ -60,6 +73,8 @@ $webComponent = SVG::{$tag}()
 ```php
 <?php
 
+use Pure\Core\SVG;
+
 use function Pure\SVG\{svg, path, g};
 
 function ChevronIcon($direction = 'right'): SVG
@@ -82,7 +97,6 @@ function ChevronIcon($direction = 'right'): SVG
     )->width('24')->height('24')->viewBox('0 0 24 24');
 }
 
-// Usage
 echo ChevronIcon('down')->class('icon');
 ```
 
@@ -202,34 +216,6 @@ $config->print(['settings' => [
 
 When the structure itself has to vary with the data, use `Slot::if()` or
 dispatch in the data layer; the tag set of a shape cannot.
-
-## Performance Considerations
-
-### Functions vs Magic Static Methods
-
-**Use functions when:**
-- The tag is one of the predefined HTML/SVG tags
-- Working with dynamic values (children and attributes)
-
-**Use magic static methods when:**
-- Creating custom or non-standard tags
-- Working with dynamic tag names
-
-Both build the same `Tag` object; the functions are the thin, explicit wrapper
-for the common names:
-
-```php
-<?php
-
-use Pure\Core\HTML;
-
-// Custom tag name
-$element1 = HTML::customTag('content')->customAttr('value');
-
-// Predefined tag through its function
-use function Pure\HTML\div;
-$element2 = div('content')->customAttr('value');
-```
 
 ## Important: String Content Is Escaped
 

@@ -42,7 +42,7 @@ paths share the same escaping implementation (`Pure\Core\Escaper`, `@internal`).
 | `Pure\Core\Slot` | Placeholder constructors (`value`, `raw`, `child`, `each`, `if`) and modifiers |
 | `Pure\Core\MissingSlotException` | Thrown when a required slot is missing, with the full path |
 
-## Function Components
+## Component Units
 
 A component unit registers a lazy template factory under the name of its call
 function: the call function returns a `Call` and carries the component name
@@ -76,7 +76,7 @@ echo Card()->title('Title')->content('Content');
 
 | Function | Behavior |
 | --- | --- |
-| `register(Closure|string $name, string\|Closure $file = '', ?Closure $factory = null, bool $override = false, ?Closure $prepare = null): void` | Registers a component unit. Preferred: pass the call function — `register(Card(...), $factory)` — and the name and file derive from it; the classic `register('Card', __FILE__, $factory)` stays supported. The factory must be lazy and may return a tag tree or a `Shape`, and `$prepare` is the optional typed props-to-bindings hook of a fluent call |
+| `register(Closure $call, ?Closure $factory = null, bool $override = false, ?Closure $prepare = null): void` | Registers a component unit. Pass the call function — `register(Card(...), $factory)` — and the name and file derive from it. The factory must be lazy and may return a tag tree or a `Shape`, and `$prepare` is the optional typed props-to-bindings hook of a fluent call |
 | `component(string $name, mixed ...$children): Call` | Starts a fluent call: props are set like tag attributes, children bind the reserved `children` slot, and the result is `Markup`, so it nests like a tag; `$name` is a registered name or a template path, and a unit's own call function passes `__FUNCTION__` |
 | `Registry::component(string $nameOrPath): Closure(array $data): string` | Returns the binder of a unit or shape file, to hold or pass around yourself |
 
@@ -120,19 +120,12 @@ per process** — file-backed templates get that from the per-path binder cache
 in `Registry::component()`, inline trees from a `static` variable inside the
 function that builds them, never inside a request handler.
 
-| Classic component | PurePHP component |
-| --- | --- |
-| `function Card(array $props): HTML` | `function Card(string $title): Call` with a `Card.cmp.php` unit (call function + template) and a `prepare()` hook |
-| `h2($title)` | `h2(Slot::value('title'))` |
-| `->class($classList)` | `->class($classList)` for static values, `->class(Slot::value('classList'))` for dynamic ones |
-| `array_map(fn ($row) => Row($row), $rows)` | loop in `prepare()` (or at the call site) and bind the joined markup to a raw slot |
-| `if ($show) { ... }` | `Slot::if('show', Shape)` |
-| `<Child($props)>` | call `Child(...)` and inject the returned markup through `Slot::raw()` |
-
 A child component's markup enters a template through a raw slot — a bare string
 child would be escaped as text:
 
 ```php
+<?php
+
 $shape = Compile::shape(div(Slot::raw('header'), Slot::each('rows', $row))->class('page'));
 $shape(['header' => Header(), 'rows' => $rows]);
 ```
@@ -171,6 +164,8 @@ single literal by rendering it once at compile time, so such subtrees cost
 nothing at render time:
 
 ```php
+<?php
+
 $shape = Compile::shape(div(
     Slot::raw('header'),
     div('Static footer')->class('footer'),
@@ -198,12 +193,16 @@ does help is an application that assembles a different shape per variant: the
 fingerprint is a cheap, stable key for the memo it keeps them in:
 
 ```php
+<?php
+
 $shapes[$classList . '|' . $item->id()] ??= Compile::shape(...);
 ```
 
 ## Renderer API
 
 ```php
+<?php
+
 $compiled = $shape->compile();
 
 $compiled->render($data);                    // string
@@ -225,6 +224,8 @@ empty by default, so a handler that wants a whole document prepends it itself:
 Disabled by default. Enable it once during bootstrap:
 
 ```php
+<?php
+
 use Pure\Compile\Compile;
 
 Compile::cachePath(__DIR__ . '/var/cache/purephp');
@@ -258,6 +259,8 @@ the development guard to detect it, and to surface the other problems that do
 not show up in the output:
 
 ```php
+<?php
+
 Compile::guard(true); // or PURE_COMPILE_GUARD=1
 ```
 

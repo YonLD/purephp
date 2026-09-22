@@ -1,15 +1,18 @@
 # 组件
 
-一个组件就是一个文件：一个返回 `Pure\Component\Call` 的 PHP 函数，紧挨着它渲染的模板与它
-接受的类型化 props。文件里注册一个惰性工厂，因此 `pure compile` 可以预编译模板，而请求只
-加载产物。
+**前置**：[Props 与 Slot](/zh/guide/props)；**本页**：用
+Component 包装 Shape——调用函数、模板与类型化 props。
+
+Component 是 Shape 的包装与高级用法：一个组件就是一个文件——一个返回
+`Pure\Component\Call` 的 PHP 函数，紧挨着它渲染的模板（一棵 Shape）与它接受的类型化
+props。文件里注册一个惰性工厂，因此 `pure compile` 可以预编译模板，而请求只加载产物。
 
 ## 第一个组件
 
-```php
+```php [components/Card.cmp.php]
 <?php
 
-// components/Card.cmp.php——组件单元：调用函数 + 模板
+// 组件单元：调用函数 + 模板
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -46,13 +49,12 @@ echo Card()->title('Title')->content('Content');
 
 ## Props
 
-props 就是单元 `prepare()` 钩子的参数：给它们类型和默认值，然后返回进模板的槽位。永不变化
+props 就是单元 `prepare()` 钩子的参数：给它们类型和默认值，然后返回进模板的 Slot。永不变化
 的值可以直接写死在模板里，每次渲染都可能变化的值放进 bindings。
 
-```php
+```php [components/Badge.cmp.php]
 <?php
 
-// components/Badge.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -79,11 +81,10 @@ Badge()->label('Save')->class('badge');
 组件调用可以写得和标签一样：props 用同样的链式 setter 设置，children 直接传给调用，
 返回值可以像标签一样嵌套。
 
-```php
+```php [components/Card.cmp.php]
 <?php
 
-// components/Card.cmp.php —— 同一个单元，改用链式调用
-use Pure\Compile\Compile;
+// 同一个单元，改用链式调用
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -118,14 +119,12 @@ echo div(
 
 - `component($name, ...$children)` 返回 `Pure\Component\Call`，它实现了
   `Pure\Core\Markup`：`div(Card(...))` 会原样输出并随父树延迟渲染，和标签子节点一致。
-- props 绑定槽位名，模板用 `Slot::value()`、`Slot::each()`、`Slot::child()` 读取。
+- props 绑定 Slot 名，模板用 `Slot::value()`、`Slot::each()`、`Slot::child()` 读取。
   `class()` 与 `style()` 的合并规则与标签 setter 完全相同；`null` 表示不设置该 prop
-  （槽位随后按“未提供”处理，或回退到默认值）。
-- children 绑定保留槽位 `children`，模板用 `Slot::raw('children')` 读取。不传 children
-  时渲染为空；模板没有 `children` 槽位却传了 children 会抛出异常。
+  （Slot 随后按“未提供”处理，或回退到默认值）。
+- children 绑定保留 Slot `children`，模板用 `Slot::raw('children')` 读取。不传 children
+  时渲染为空；模板没有 `children` Slot 却传了 children 会抛出异常。
 - 模板不读取的 prop 会由开发守卫给出 `did you mean` 提示，`pure check` 也能静态发现。
-- 调用函数也可以自己给 props 加类型并返回 `Call`——调用点由 PHP 检查，代价是把 setter 写
-  一遍：`function Badge(string $label): Call { return component('Badge')->label($label); }`
 
 ### 用 prepare() 给 props 加类型
 
@@ -142,7 +141,7 @@ function Section(mixed ...$children): Call
 }
 
 register(Section(...),
-    factory: static fn () => Compile::shape(...),
+    factory: static fn () => div(...), // 模板从略
     prepare: static function (string $section, string $class, callable $item): array {
         $data = FeaturesService::section($section);
 
@@ -158,11 +157,11 @@ Section()->section('columns')->class('row g-4')->item(IconColumn(...));
 ```
 
 没有 `prepare` 闭包时，props 直接就是 bindings，适合纯模板组件。`pure check` 会把
-`prepare()` 的参数与返回的键同模板槽位逐一比对。
+`prepare()` 的参数与返回的键同模板 Slot 逐一比对。
 
 ### 用 #[Prop] 声明 props 契约
 
-签名表达不了全部信息：prop 与槽位名字不一致时它绑定谁、列表 prop 的每一项长什么样、
+签名表达不了全部信息：prop 与 Slot 名字不一致时它绑定谁、列表 prop 的每一项长什么样、
 某个 prop 是否准备废弃。`#[Prop]` 注解把这些事实写出来，让 `pure check` 去校验，而不是
 靠推断：
 
@@ -172,29 +171,29 @@ Section()->section('columns')->class('row g-4')->item(IconColumn(...));
 use Pure\Component\Prop;
 
 register(Card(...),
-    factory: static fn () => Compile::shape(...),
+    factory: static fn () => div(...), // 模板从略
     prepare: static function (
         #[Prop(slot: 'title')] string $text,
         #[Prop(item: 'value')] array $features,
         #[Prop(required: false)] ?string $class = null,
         #[Prop(deprecated: 'use class()')] ?string $style = null,
     ): array {
-        return ['title' => $text, 'features' => ..., 'class' => $class, 'style' => $style];
+        return ['title' => $text, 'features' => $features, 'class' => $class, 'style' => $style];
     }
 );
 ```
 
-- `slot` 指定该 prop 绑定的槽位名，默认与参数名相同。当 `prepare()` 返回的不是一个可读的
-  字面量数组（分步构建或合并而来）时，模板的必填槽位改为与声明的槽位比对，而不再是一句
+- `slot` 指定该 prop 绑定的 Slot 名，默认与参数名相同。当 `prepare()` 返回的不是一个可读的
+  字面量数组（分步构建或合并而来）时，模板的必填 Slot 改为与声明的 Slot 比对，而不再是一句
   “未做比对”的 `info`。
-- `item` 指定列表 prop 的每一项在 `Slot::each` 的 item 形状里填哪个槽位，检查器会把两者
+- `item` 指定列表 prop 的每一项在 `Slot::each` 的 item Shape 里填哪个 Slot，检查器会把两者
   对比。
 - `required` 声明调用方的义务；与签名矛盾的声明会被报告。
 - `deprecated` 携带迁移提示：`pure check` 会在每个绑定该 prop 的调用点打印，开发守卫也会
   在调用处告警。
 
-`#[Trusted]` 标记携带"已渲染好的 markup"的 prop：`pure check` 会校验它绑定的是 raw 槽
-（markup 绑到文本槽会被转义），开发守卫则会在调用方传入的不是 `Pure\Core\Markup`
+`#[Trusted]` 标记携带"已渲染好的 markup"的 prop：`pure check` 会校验它绑定的是 raw Slot
+（markup 绑到文本 Slot 会被转义），开发守卫则会在调用方传入的不是 `Pure\Core\Markup`
 时告警——这正是不可信输入流向输出的位置：
 
 ```php
@@ -205,7 +204,7 @@ prepare: static function (#[Trusted] Markup $icon): array
 ```
 
 `#[Binds]` 声明 `prepare()` 返回的键，用于分步构建、或从服务合并 bindings 的场景，让返回
-数组读不出来时必填槽位依然被校验：
+数组读不出来时必填 Slot 依然被校验：
 
 ```php
 prepare: #[Binds('title', 'desc')] static function (): array
@@ -216,9 +215,9 @@ prepare: #[Binds('title', 'desc')] static function (): array
 
 页面单元的钩子若返回 `...bindings()` 助手的结果，用同样的方式在钩子本身上声明键名：
 `prepare: #[Binds('header', 'pricing')] static fn (): array => pricingBindings()`。
-当列表 prop 在调用点被绑定为一个数组字面量时，每一项的键会与槽位的 item 形状比对——
-`->links([['txet' => '...']])` 会在写下的地方被报出来。读取多个槽位的 item 形状不需要额外
-声明：嵌套形状本身就是契约。
+当列表 prop 在调用点被绑定为一个数组字面量时，每一项的键会与 Slot 的 item Shape 比对——
+`->links([['txet' => '...']])` 会在写下的地方被报出来。读取多个 Slot 的 item Shape 不需要额外
+声明：嵌套 Shape 本身就是契约。
 
 注解由 `pure check` 与开发守卫读取，渲染时完全不会查询；没有注解的单元行为与之前完全一致。
 
@@ -227,13 +226,11 @@ prepare: #[Binds('title', 'desc')] static function (): array
 
 ## 组合组件
 
-需要包裹 markup 的组件从 raw 的 `children` 槽读取它，调用方则像标签一样把 children
+需要包裹 markup 的组件从 raw 的 `children` Slot 读取它，调用方则像标签一样把 children
 传给调用：
 
-```php
+```php [components/Button.cmp.php]
 <?php
-
-// components/Button.cmp.php
 
 function Button(mixed ...$children): Call
 {
@@ -248,7 +245,7 @@ Button(Icon()->href('#plus'))->label('Add');
 ```
 
 列表同理：在组件的 `prepare()` 或调用点构造子调用（或已渲染字符串）的列表并传给 raw
-槽——它逐元素转成字符串后拼接，所以用不着 `implode()`。若列表项只是普通数据行、不需要逐项
+Slot——它逐元素转成字符串后拼接，所以用不着 `implode()`。若列表项只是普通数据行、不需要逐项
 组件逻辑，可以在
 模板里直接用 `Slot::each()`。
 
@@ -259,10 +256,9 @@ Button(Icon()->href('#plus'))->label('Add');
 `renderHTML()` / `renderXML()`，由函数按名称拼接文档声明（`renderHTML()` 是
 `<!DOCTYPE html>`，`renderXML()` 是 XML 声明）：
 
-```php
+```php [views/features.cmp.php]
 <?php
 
-// views/features.cmp.php
 function Features(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
@@ -298,8 +294,7 @@ function featuresPage(): string
 
 `component()` 是底层助手的便捷形式：
 
-- `register(Card(...), $factory)` 注册一个单元，名字与文件从调用函数派生（经典写法
-  `register('Card', __FILE__, $factory)` 仍然支持）。
+- `register(Card(...), $factory)` 注册一个单元，名字与文件从调用函数派生。
 - `Registry::component($nameOrPath)` 返回单元或 shape 文件的
   `Closure(array $data): string` 绑定器，便于自己持有或传递。
 
@@ -327,7 +322,7 @@ function Tag(string $label): string
 
 ## 缓存
 
-- 单元文件旁存在不早于它的 `*.pure.php` 产物时，直接由产物提供服务；工厂与形状树完全不
+- 单元文件旁存在不早于它的 `*.pure.php` 产物时，直接由产物提供服务；工厂与 Shape 树完全不
   会被触碰。
 - `Registry::component()` 在同一个编译 generation 内按名字或路径缓存绑定器。
 - `Compile::cachePath($dir)`——请求加载已生成的 renderer，而不是重新生成。
@@ -349,14 +344,15 @@ div(h2('Title'), p('Content'))->class('card')->print();
 
 只建议用于片段与调试；生产组件应当编译模板，让转义与结构成本只付一次。
 
-## 槽位参考
+## Slot 参考
 
-组件是函数；槽位是模板*内部*的词汇：`Slot::value()`、`Slot::raw()`、`Slot::child()`、
+组件是函数；Slot 是模板*内部*的词汇：`Slot::value()`、`Slot::raw()`、`Slot::child()`、
 `Slot::each()` 与 `Slot::if()`。完整的数据绑定参考见
-[Props 与槽位](/zh/guide/props)。
+[Props 与 Slot](/zh/guide/props)。
 
 ## 下一步
 
-- [编译产物](/zh/guide/compiled)——产物、缓存与无依赖视图
-- [Props 与槽位](/zh/guide/props)——完整的数据绑定参考
+- [编译渲染](/zh/guide/compiled)——组件模板如何编译与缓存
+- [产物与部署](/zh/guide/artifacts)——产物、缓存与无依赖视图
+- [Props 与 Slot](/zh/guide/props)——完整的数据绑定参考
 - [事件](/zh/guide/events)——事件属性与浏览器端处理器

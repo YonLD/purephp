@@ -1,8 +1,12 @@
 # 事件
 
+**前置**：[基本用法](/zh/guide/basic-usage)；**本页**：事件属性与浏览器端处理器。
+
 本指南解释如何在 PurePHP 组件中处理事件。
 
-*诸如 `->onclick(...)` 这样的事件属性属于标签 API，依然有效；它们是静态属性，因此在形状上的设置方式相同。对于页面，应构建形状并编译它们——参见[编译组件](/zh/guide/compiled)。下面的多数示例使用标签 API，它仍是用于代码片段和调试的即时渲染路径。*
+::: tip 事件属性属于标签 API
+诸如 `->onclick(...)` 这样的事件属性属于标签 API，依然有效；它们是静态属性，因此在 Shape 上的设置方式相同。对于页面，应构建 Shape 并编译它们——参见[编译渲染](/zh/guide/compiled)。下面的多数示例使用标签 API，它仍是用于代码片段和调试的即时渲染路径。
+:::
 
 ## 基本事件处理
 
@@ -13,7 +17,8 @@ PurePHP 通过属性方法支持所有标准 HTML 事件。事件处理程序通
 
 use function Pure\HTML\{div, button, input};
 
-function BasicEvents() {
+function BasicEvents()
+{
     return div(
         button('Click me')
             ->onclick('handleClick()')
@@ -26,7 +31,6 @@ function BasicEvents() {
     )->class('events-container');
 }
 
-// 使用组件
 BasicEvents()->print();
 ```
 
@@ -39,7 +43,8 @@ BasicEvents()->print();
 
 use function Pure\HTML\div;
 
-function MouseEvents() {
+function MouseEvents()
+{
     return div('Hover and click me!')
         ->onclick('console.log("Clicked!")')
         ->onmouseover('this.style.backgroundColor = "#f0f0f0"')
@@ -50,7 +55,6 @@ function MouseEvents() {
         ->class('mouse-events');
 }
 
-// 使用组件
 MouseEvents()->print();
 ```
 
@@ -63,7 +67,8 @@ MouseEvents()->print();
 
 use function Pure\HTML\{div, input, p};
 
-function KeyboardEvents() {
+function KeyboardEvents()
+{
     return div(
         p('Type in the input below:'),
         input()
@@ -77,7 +82,6 @@ function KeyboardEvents() {
     )->class('keyboard-events');
 }
 
-// 使用带 JavaScript 的组件
 echo KeyboardEvents();
 ?>
 <script>
@@ -105,7 +109,8 @@ function handleInput(event) {
 
 use function Pure\HTML\{form, div, label, input, button, p};
 
-function FormEvents() {
+function FormEvents()
+{
     return div(
         form(
             div(
@@ -136,7 +141,6 @@ function FormEvents() {
     )->class('form-events');
 }
 
-// 使用带 JavaScript 的组件
 echo FormEvents();
 ?>
 <script>
@@ -166,7 +170,8 @@ function handleFormSubmit(event) {
 
 use function Pure\HTML\{div, button};
 
-function EventDelegation() {
+function EventDelegation()
+{
     $buttons = [];
     for ($i = 1; $i <= 5; $i++) {
         $buttons[] = button("Button {$i}")
@@ -183,7 +188,6 @@ function EventDelegation() {
     ->class('delegation-container');
 }
 
-// 使用带 JavaScript 的组件
 echo EventDelegation();
 ?>
 <script>
@@ -200,7 +204,7 @@ function handleDelegatedClick(event) {
 
 ## 组件事件通信
 
-事件处理程序写在组件的静态事件属性上；动态值通过槽位传入：
+事件处理程序写在组件的静态事件属性上；动态值通过 Slot 传入：
 
 ```php
 <?php
@@ -252,7 +256,7 @@ function handleChildClick(message) {
 </script>
 ```
 
-处理程序会作为静态属性编译进形状，因此处理程序名不能来自请求数据。完整流程参见[编译组件](/zh/guide/compiled)。
+处理程序会作为静态属性编译进 Shape，因此处理程序名不能来自请求数据。完整流程参见[编译渲染](/zh/guide/compiled)。
 
 ## 自定义事件属性
 
@@ -263,7 +267,8 @@ function handleChildClick(message) {
 
 use function Pure\HTML\{div, img};
 
-function CustomEventAttributes() {
+function CustomEventAttributes()
+{
     return div(
         div('Image with load event:'),
         img()
@@ -282,7 +287,6 @@ function CustomEventAttributes() {
     )->class('custom-events');
 }
 
-// 使用组件
 CustomEventAttributes()->print();
 ```
 
@@ -311,7 +315,8 @@ div(
 )->print();
 ?>
 <script>
-function handleComplexAction() {
+function handleComplexAction()
+{
     // 复杂逻辑在这里
     console.log('Complex action executed');
     // ... 更多代码
@@ -326,7 +331,8 @@ function handleComplexAction() {
 
 use function Pure\HTML\{div, button};
 
-function EventObjectExample() {
+function EventObjectExample()
+{
     return div(
         button('Get Event Info')
             ->onclick('showEventInfo(event)')
@@ -354,4 +360,4 @@ function showEventInfo(event) {
 
 - [HTMX 集成](/zh/guide/htmx) - 了解如何与 HTMX 配合使用
 - [组件](/zh/guide/components) - 深入学习组件开发
-- [属性](/zh/guide/props) - 了解属性系统
+- [Props 与 Slot](/zh/guide/props) - Slot 类型与数据绑定

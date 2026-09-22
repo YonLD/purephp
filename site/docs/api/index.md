@@ -100,5 +100,5 @@ Pure\Core\Slot         (data placeholder)
 ## Next Steps
 
 - Browse individual class documentation for detailed examples
-- Read the [compiled components guide](/guide/compiled) for the production path
+- Read [Compiled Rendering](/guide/compiled) and [Artifacts & Deployment](/guide/artifacts) for the production path
 - See [SVG and XML Support](/guide/svg-xml) for graphics and data handling

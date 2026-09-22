@@ -1,16 +1,18 @@
 # Components
 
-A component is one file: a PHP function that returns a `Pure\Component\Call`,
-next to the template it renders and the typed props it accepts. The file
-registers a lazy factory, so `pure compile` can precompile the template while a
-request only loads the artifact.
+**Prerequisites**: [Props and Slots](/guide/props); **On this page**: wrapping shapes with components — call functions, templates and typed props.
+
+A component wraps a shape: one file holds a PHP function that returns a
+`Pure\Component\Call`, next to the template it renders (a shape) and the typed
+props it accepts. The file registers a lazy factory, so `pure compile` can
+precompile the template while a request only loads the artifact.
 
 ## Your First Component
 
-```php
+```php [components/Card.cmp.php]
 <?php
 
-// components/Card.cmp.php — the component unit: call function + template
+// the component unit: call function + template
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -57,10 +59,9 @@ defaults, and return them into the template's slots. Values that never change
 can be baked into the template; anything that changes per render belongs in the
 bindings.
 
-```php
+```php [components/Badge.cmp.php]
 <?php
 
-// components/Badge.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -87,11 +88,10 @@ Badge()->label('Save')->class('badge');
 A component call reads like a tag: props are set with the same fluent setters,
 children are passed to the call, and the result nests wherever a tag does.
 
-```php
+```php [components/Card.cmp.php]
 <?php
 
-// components/Card.cmp.php — the same unit, called fluently
-use Pure\Compile\Compile;
+// the same unit, called fluently
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -137,9 +137,6 @@ echo div(
   children on a template that has no `children` slot throws.
 - A prop the template does not read is reported by the development guard with a
   `did you mean` suggestion, and by `pure check` statically.
-- A call function may type its props itself and return a `Call` — the call site
-  is then checked by PHP, at the cost of writing the setters once:
-  `function Badge(string $label): Call { return component('Badge')->label($label); }`
 
 ### Typed Props with prepare()
 
@@ -157,7 +154,7 @@ function Section(mixed ...$children): Call
 }
 
 register(Section(...),
-    factory: static fn () => Compile::shape(...),
+    factory: static fn () => div(...),
     prepare: static function (string $section, string $class, callable $item): array {
         $data = FeaturesService::section($section);
 
@@ -189,7 +186,7 @@ the template instead of inferring them:
 use Pure\Component\Prop;
 
 register(Card(...),
-    factory: static fn () => Compile::shape(...),
+    factory: static fn () => div(...),
     prepare: static function (
         #[Prop(slot: 'title')] string $text,
         #[Prop(item: 'value')] array $features,
@@ -257,10 +254,8 @@ The compiled artifact and the plain view are unaffected, and the benchmark in
 A component that wraps markup reads it from a raw `children` slot, and the
 caller passes the children to the call — exactly like a tag:
 
-```php
+```php [components/Button.cmp.php]
 <?php
-
-// components/Button.cmp.php
 
 function Button(mixed ...$children): Call
 {
@@ -290,10 +285,9 @@ call to `renderHTML()` / `renderXML()`, which prepend the document header of the
 function's flavour — `<!DOCTYPE html>` for `renderHTML()`, the XML declaration
 for `renderXML()`:
 
-```php
+```php [views/features.cmp.php]
 <?php
 
-// views/features.cmp.php
 function Features(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
@@ -333,8 +327,7 @@ bindings either way.
 `component()` is a convenience over the lower-level helpers:
 
 - `register(Card(...), $factory)` registers a unit; the name and file derive
-  from the call function (the classic `register('Card', __FILE__, $factory)`
-  stays supported).
+  from the call function.
 - `Registry::component($nameOrPath)` returns the `Closure(array $data): string`
   binder of a unit or shape file, to hold or pass around yourself.
 
@@ -398,6 +391,7 @@ the complete binding reference.
 
 ## Next Steps
 
-- [Compiled Components](/guide/compiled) - Artifacts, caching and plain views
+- [Compiled Rendering](/guide/compiled) - How a component's template compiles and caches
+- [Artifacts & Deployment](/guide/artifacts) - Artifacts, caching and plain views
 - [Props and Slots](/guide/props) - The complete data-binding reference
 - [Events](/guide/events) - Event attributes and browser-side handlers

@@ -1,15 +1,19 @@
 # Utility Functions
 
+**Prerequisites**: [Core Concepts](/guide/concepts); **On this page**: `clx()`, `sty()` and `renderHTML()` / `renderXML()`.
+
 PurePHP provides several utility functions to simplify development: `clx()`
 and `sty()` are automatically used when setting element attributes, and
 `renderHTML()` / `renderXML()` prepend the document header to a rendered tree
 or component call.
 
-*`clx()` and `sty()` are unchanged by compiled rendering: use them
+::: tip Utilities and compiled rendering
+`clx()` and `sty()` are unchanged by compiled rendering: use them
 while building static attributes in a shape, and bind dynamic values with
 `Slot::value()` / `Slot::raw()` — see
-[Compiled Components](/guide/compiled). Most examples below use the tag API,
-which remains valid for snippets and debugging.*
+[Compiled Rendering](/guide/compiled). Most examples below use the tag API,
+which remains valid for snippets and debugging.
+:::
 
 ## clx Function
 
@@ -66,7 +70,7 @@ echo $classes; // Output: btn btn-primary active
 
 ### Built-in Usage in class() Method
 
-The `class()` method has built-in `clx` function and can accept multiple parameters directly:
+The `class()` method has a built-in `clx` function and accepts multiple parameters directly:
 
 ```php
 <?php
@@ -79,13 +83,10 @@ $size = 'large';
 div('Content')
     ->class('btn', 'btn-primary', $isActive ? 'active' : null, $size)
     ->print();
-
-// Equivalent to
-use function Pure\Utils\clx;
-
-$classes = clx('btn', 'btn-primary', $isActive ? 'active' : null, $size);
-div('Content')->class($classes)->print();
 ```
+
+Pass the arguments directly on the attribute; call `clx()` yourself only when
+you need the merged string on its own.
 
 ## sty Function
 
@@ -128,7 +129,7 @@ echo $styles; // Output: color: blue; display: block; opacity: 1;
 
 ### Built-in Usage in style() Method
 
-The `style()` method has built-in `sty` function and can accept arrays directly:
+The `style()` method has a built-in `sty` function and accepts arrays directly:
 
 ```php
 <?php
@@ -143,18 +144,10 @@ div('Content')
         'margin' => '10px 0'
     ])
     ->print();
-
-// Equivalent to
-use function Pure\Utils\sty;
-
-$styles = sty([
-    'background-color' => '#f0f0f0',
-    'padding' => '20px',
-    'border-radius' => '8px',
-    'margin' => '10px 0'
-]);
-div('Content')->style($styles)->print();
 ```
+
+Pass the array directly; call `sty()` yourself only when you need the merged
+style string on its own.
 
 ## renderHTML and renderXML
 
@@ -230,7 +223,8 @@ function ActionButton(
 }
 
 // Render-time values only; a null attribute is omitted.
-echo ActionButton('Submit', 'success', 'large', false, sty(['opacity' => 1, 'cursor' => 'pointer']));
+$style = sty(['opacity' => 1, 'cursor' => 'pointer']);
+echo ActionButton('Submit', 'success', 'large', false, $style);
 ```
 
 ### Responsive Card Component

@@ -1,8 +1,12 @@
 # PurePHP 与 HTMX 集成
 
+**前置**：[组件](/zh/guide/components)；**本页**：用 HTMX 做无 JavaScript 的动态交互。
+
 PurePHP 和 HTMX 构成强大的组合，让你能够构建动态、响应式的用户界面，同时保持 PHP 后端简洁。
 
-*HTMX 片段天然适合编译形状：`hx-*` 属性是普通的静态标签属性，因此在形状上只设置一次，端点用请求数据渲染同一个形状。参见[编译组件](/zh/guide/compiled)。*
+::: tip HTMX 片段适合编译 Shape
+HTMX 片段天然适合编译 Shape：`hx-*` 属性是普通的静态标签属性，因此在 Shape 上只设置一次，端点用请求数据渲染同一个 Shape。参见[编译渲染](/zh/guide/compiled)。
+:::
 
 ## 为什么选择这个组合？
 
@@ -26,12 +30,11 @@ composer require yonld/purephp
 
 ### 2. 创建动态组件
 
-计数器文本是绑定的槽位；端点用新的计数渲染同一个 `CounterValue()` 组件。每个组件都是自己的单元：
+计数器文本是绑定的 Slot；端点用新的计数渲染同一个 `CounterValue()` 组件。每个组件都是自己的单元：
 
-```php
+```php [components/CounterValue.cmp.php]
 <?php
 
-// components/CounterValue.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -50,10 +53,9 @@ register(CounterValue(...),
     }
 );
 ```
-```php
+```php [components/Counter.cmp.php]
 <?php
 
-// components/Counter.cmp.php
 require_once __DIR__ . '/CounterValue.cmp.php';
 
 use Pure\Component\Call;
@@ -81,10 +83,9 @@ register(Counter(...),
     }
 );
 ```
-```php
+```php [index.php]
 <?php
 
-// index.php
 require __DIR__ . '/components/Counter.cmp.php';
 
 // 渲染页面
@@ -107,7 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SERVER['REQUEST_URI'] === '/incre
 
 use function Pure\HTML\{button, div, li, ul};
 
-function TodoList() {
+function TodoList()
+{
     return div(
         ul()->id('todos'),
         button('Load More')
@@ -133,10 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($_SERVER['REQUEST_URI'], '/to
 
 结果列表是一个组件；每个结果标题都用 `Slot::value()` 绑定，端点用搜索结果渲染列表组件：
 
-```php
+```php [components/SearchResult.cmp.php]
 <?php
 
-// components/SearchResult.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -155,10 +156,9 @@ register(SearchResult(...),
     }
 );
 ```
-```php
+```php [components/ResultList.cmp.php]
 <?php
 
-// components/ResultList.cmp.php
 require_once __DIR__ . '/SearchResult.cmp.php';
 
 use Pure\Component\Call;
@@ -185,10 +185,9 @@ register(ResultList(...),
     }
 );
 ```
-```php
+```php [components/SearchBox.cmp.php]
 <?php
 
-// components/SearchBox.cmp.php
 require_once __DIR__ . '/ResultList.cmp.php';
 
 use Pure\Component\Call;
@@ -218,10 +217,9 @@ register(SearchBox(...),
     }
 );
 ```
-```php
+```php [index.php]
 <?php
 
-// index.php
 require __DIR__ . '/components/SearchBox.cmp.php';
 
 // 用空结果列表渲染页面

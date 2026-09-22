@@ -4,14 +4,14 @@
 
 ## Core，而非组件层
 
-`Raw` 位于 `Pure\Core`，用于形状树中的 verbatim 子节点（例如
-`div(Raw::of('<b>x</b>'))`），以及把已渲染的标记传入 `Slot::raw()` 槽位。
+`Raw` 位于 `Pure\Core`，用于 Shape 树中的 verbatim 子节点（例如
+`div(Raw::of('<b>x</b>'))`），以及把已渲染的标记传入 `Slot::raw()` Slot。
 组件层本身（`Call`、调用函数）渲染出的是普通 `string`，组件 API 中没有
 `Raw` 类型。
 
 > **信任边界**——一次调用渲染成 `string` 之后，类型系统无法再区分那个字符串
-> 是"可信的已渲染标记"还是普通文本。信任改由 raw 槽约定承载：传入 raw 槽的
-> 值原样输出，传入 value 槽的值必然转义。
+> 是"可信的已渲染标记"还是普通文本。信任改由 raw Slot 约定承载：传入 raw Slot 的
+> 值原样输出，传入 value Slot 的值必然转义。
 
 ## 为什么原始内容很重要
 

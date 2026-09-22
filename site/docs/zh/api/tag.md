@@ -181,7 +181,7 @@ $element = div()->setSelfClose(true);
 ### `toJSON(): array`
 
 把元素转换为嵌套的 JSON 兼容数组：`tagName`、`attrs`、`children`。属性放在独立
-键下，因此属性名永远不会与结构键冲突。槽位描述为 `['slot' => 'name']`。
+键下，因此属性名永远不会与结构键冲突。Slot 描述为 `['slot' => 'name']`。
 
 ```php
 <?php
@@ -203,7 +203,7 @@ $json = $element->toJSON();
 `Pure\Core\Markup` 子节点——`Raw` 与组件调用——按原样输出，并随树延迟渲染。
 
 `render()`（以及 `print()` / `__toString()`）是**片段与调试**出口。生产页面应改为
-编译形状，这样静态标记只在编译期转义一次——参见[编译渲染](./compile)。
+编译 Shape，这样静态标记只在编译期转义一次——参见[编译渲染](./compile)。
 
 含 `Slot` 占位符的树不能直接渲染：请用 `Pure\Compile\Compile::shape()` 编译，并在渲染
 时绑定数据。

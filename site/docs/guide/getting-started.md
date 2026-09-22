@@ -1,6 +1,12 @@
 # Quick Start
 
-This guide will help you install PurePHP and create your first application.
+**Prerequisites**: none; **On this page**: install PurePHP and run your first component.
+
+This guide helps you install PurePHP and create your first application: a
+**component** — one file with a call function and a data-free template whose
+dynamic values are **Slot** placeholders, typed through a `prepare()` hook.
+Everything data-driven in PurePHP is built this way; snippets can also render
+tag trees immediately, as shown in the installation check below.
 
 ## Requirements
 
@@ -21,7 +27,7 @@ composer require yonld/purephp
 
 Create a simple test file `test.php`:
 
-```php
+```php [test.php]
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -41,12 +47,12 @@ php test.php
 ```
 
 If you see HTML output, the installation was successful. Note that this uses
-immediate rendering — it is the right tool for a quick check, but pages should
-compile shapes (see below).
+immediate rendering — the right tool for a quick check; the application below
+renders as a component.
 
 ## Create Your First Application
 
-### 1. Create Project Directory
+### 1. Create the Project Directory
 
 ```bash
 mkdir my-purephp-app
@@ -54,111 +60,14 @@ cd my-purephp-app
 composer require yonld/purephp
 ```
 
-### 2. Create the Unit and the Entry File
+### 2. Create Your First Component
 
-Create `views/page.cmp.php`, the component unit — the registered template, its
-typed props in `prepare()` and the call function:
+Create `components/Card.cmp.php`. The template is a data-free tree: dynamic
+values are `Slot` placeholders, bound by the typed props of the `prepare()`
+hook:
 
-```php
+```php [components/Card.cmp.php]
 <?php
-
-// views/page.cmp.php
-use Pure\Component\Call;
-use Pure\Core\Slot;
-
-use function Pure\Component\{component, register};
-use function Pure\HTML\{div, h1, p};
-
-function Page(mixed ...$children): Call
-{
-    return component(__FUNCTION__, ...$children);
-}
-
-register(Page(...),
-    factory: static fn () =>
-        div(
-            h1(Slot::value('heading')),
-            p(Slot::value('lead')),
-            p(Slot::value('body'))
-        )->class('container'),
-    prepare: static function (string $heading, string $lead, string $body): array {
-        return ['heading' => $heading, 'lead' => $lead, 'body' => $body];
-    }
-);
-```
-
-Then `index.php`, the entry file, loads the unit and renders it:
-
-```php
-<?php
-
-// index.php
-require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/views/page.cmp.php';
-
-use function Pure\Utils\renderHTML;
-
-echo renderHTML(Page()
-    ->heading('My First PurePHP Application')
-    ->lead('Welcome to PurePHP!')
-    ->body('This is a simple yet powerful PHP template engine.'));
-```
-
-A unit lives in its own `*.cmp.php` file — `pure compile` discovers those files,
-and the registered name — derived from the call function — resolves to that
-file. The binder
-loads the template once per process and caches it per name or path;
-the document header is the caller's to prepend. Under standard PHP-FPM, enable
-`Compile::cachePath()` so requests load the compiled renderer instead of
-rebuilding it, or precompile the template with `vendor/bin/pure compile .` so
-the binder loads the artifact.
-
-### 3. Run the Application
-
-Open `index.php` in a browser or use PHP's built-in server:
-
-```bash
-php -S localhost:8000
-```
-
-Then visit `http://localhost:8000` to see your first PurePHP application!
-
-### 4. Enable the Development Guard
-
-While developing, enable the guard so problems that are invisible in the output
-are reported instead of silently slowing the page down or rendering as empty:
-
-```php
-// index.php, before the first render
-Compile::guard(true);           // or set PURE_COMPILE_GUARD=1
-```
-
-It emits one `E_USER_WARNING` per subject per process:
-
-- a shape rebuilt per request: the same call site calls `Compile::shape()` 20
-  times in one process (the 20th call warns), for example an inline
-  `Compile::shape(...)`
-  rebuilt on every call. File-backed components resolve through
-  `Registry::component()`, which caches the binder per name or path;
-- a binding the template never reads, with a `did you mean` suggestion, so a
-  misspelled key (`titel`) is not silently ignored;
-- an attribute setter whose name is one edit away from a standard attribute
-  (`->clas(...)`, `->hreff(...)`), which would otherwise become a custom
-  attribute no one notices.
-
-## Basic Examples
-
-### Using Components
-
-A component is a call function returning a `Call`, backed by its own template
-and the typed props of its `prepare()` hook:
-
-```php
-<?php
-
-// Card.cmp.php
-
-require 'vendor/autoload.php';
 
 use Pure\Component\Call;
 use Pure\Core\Slot;
@@ -172,57 +81,60 @@ function Card(mixed ...$children): Call
 }
 
 register(Card(...),
-    factory: static fn () =>
-        div(
-            h2(Slot::value('title')),
-            p(Slot::value('content'))
-        )->class(Slot::value('class')),
-    prepare: static function (string $title, string $content, string $class = 'card'): array {
-        return ['title' => $title, 'content' => $content, 'class' => $class];
+    factory: static fn () => div(
+        h2(Slot::value('title')),
+        p(Slot::value('content'))
+    )->class('card'),
+    prepare: static function (string $title, string $content): array {
+        return ['title' => $title, 'content' => $content];
     }
 );
 
-// Render the component with data
-echo Card()->title('Card Title')->content('This is the card content');
+echo Card()->title('Title')->content('Content');
 ```
 
-### Setting Attributes
+- `Slot::value('title')` is a placeholder: at render time the value comes from
+  the prop of the same name and is escaped into that position;
+- `register(Card(...))` derives the name and the file from the call function
+  and stores the factory lazily — it builds nothing;
+- `prepare()` is the typed prop contract: PHP enforces the parameter types,
+  and the array it returns binds the template.
 
-Static attributes are set on the shape; dynamic attributes use
-`Slot::value()`:
+### 3. Run the Application
 
-```php
-<?php
-
-use Pure\Compile\Compile;
-use Pure\Core\Slot;
-
-use function Pure\HTML\div;
-
-$shape = Compile::shape(
-    div('Content')->class('container')->id(Slot::value('id'))
-);
-
-$shape(['id' => 'main-content']);
+```bash
+php components/Card.cmp.php
 ```
 
-For snippets — small fragments that are rendered immediately — you can keep
-using the tag API and `print()`:
+Output:
 
-```php
-<?php
-
-use function Pure\HTML\div;
-
-div('Content')
-    ->class('container')
-    ->style('background: #f0f0f0; padding: 20px;')
-    ->data_id('main-content')
-    ->print();
+```html
+<div class="card"><h2>Title</h2><p>Content</p></div>
 ```
+
+In a real application the unit sits in its own file, the controller `require`s
+it and calls the component with request data — see
+[Components](/guide/components).
+
+### 4. Next: Toward Production
+
+The snippet above rebuilds the template on every run — fine for learning.
+Production needs three more things:
+
+- **Disk cache and precompiled artifacts** — `Compile::cachePath()` and
+  `pure compile`, see [Artifacts & Deployment](/guide/artifacts);
+- **The development guard** — reports per-request rebuilds, misspelled
+  bindings and similar problems, see [Caching](/guide/compiled#caching);
+- **Static contract checking** — `pure check` validates props against slots
+  in CI, see [Contract Check](/guide/artifacts#contract-check).
 
 ## Next Steps
 
-- [Compiled Components](/guide/compiled) - Components, lists, conditionals and caching
-- [Core Concepts](/guide/concepts) - Understand PurePHP fundamentals
-- [Props and Slots](/guide/props) - Learn how data is bound to a shape
+In order:
+
+- [Basic Usage](/guide/basic-usage) - The tag API for snippets, prototypes and debugging
+- [Core Concepts](/guide/concepts) - Tag trees, shapes, slots and components
+- [Props and Slots](/guide/props) - Slot types and the data-binding reference
+- [Components](/guide/components) - Composition, prop contracts and pages
+- [Compiled Rendering](/guide/compiled) - How a component's template compiles
+- [Artifacts & Deployment](/guide/artifacts) - `pure compile` artifacts and production deployment

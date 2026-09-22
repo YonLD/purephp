@@ -1,14 +1,18 @@
 # Core Concepts
 
-This guide explains the core concepts of PurePHP.
+**Prerequisites**: [Quick Start](/guide/getting-started); **On this page**: tag trees, shapes, slots, components and data scope.
+
+This guide explains the core concepts of PurePHP: tag trees and Slot first,
+Shape as the data-free template a component renders, and components — the
+recommended path for any data-driven output — toward the end of this page.
 
 ## Choosing a Path
 
 One rule covers both paths:
 
-- **Data drives the output → slots and shapes**: replace the values with `Slot`
-  placeholders, wrap the tree in `Compile::shape()` and bind plain data per
-  request.
+- **Data drives the output → components**: the template is a data-free tree
+  of `Slot` placeholders and props bind plain data per request — see
+  [Components](/guide/components). This is the recommended path for pages.
 - **A snippet, prototype or debug output → render immediately**: build the tree
   with the real values and call `print()` or `render()`.
 
@@ -50,7 +54,9 @@ snippets and debugging.
 
 A **shape** is the same kind of tree, but *data-free*: dynamic values are
 replaced by `Slot` placeholders. A shape describes structure; data arrives
-later.
+later. A component's template is a shape — this section shows the form on its
+own so the Slot vocabulary stands alone, and the Components section below wraps
+it into the recommended unit.
 
 ```php
 <?php
@@ -131,23 +137,20 @@ $list(['items' => [['title' => 'a'], ['title' => 'b']]]);
 
 `Slot::child()` and `Slot::each()` establish a nested scope, so inside `li` the
 slot `title` resolves against the current item. Missing required keys throw
-`Pure\Core\MissingSlotException` with the full path
-(`slot 'items[].title' is required but was not provided.`), and the message
-suggests the closest provided key or lists the keys the scope did provide; a
-required value or raw slot bound to an explicit `null` fails with
-`slot 'items[].title' is required but was null.` Use `->default($value)` or
-`->required(false)` for optional data.
+`Pure\Core\MissingSlotException` with the full path, whose message suggests the
+closest provided key or lists the keys the scope did provide; use
+`->default($value)` or `->required(false)` for optional data — the full rules
+are in [Missing Data](/guide/props#missing-data).
 
 ## Components
 
-A component is one `*.cmp.php` unit: a call function that returns a
-`Pure\Component\Call`, plus the lazy factory registered next to it and the
-`prepare()` hook that types its props:
+A component is a wrapper around a shape: one `*.cmp.php` unit holds a call
+function that returns a `Pure\Component\Call`, the template (a shape) it
+renders, and the `prepare()` hook that types its props:
 
-```php
+```php [components/Card.cmp.php]
 <?php
 
-// components/Card.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
@@ -164,18 +167,19 @@ register(Card(...),
         div(
             h2(Slot::value('title')),
             p(Slot::value('content'))
-        )->class(Slot::value('class')),
-    prepare: static function (string $title, string $content, string $class = 'card'): array {
-        return ['title' => $title, 'content' => $content, 'class' => $class];
+        )->class('card'),
+    prepare: static function (string $title, string $content): array {
+        return ['title' => $title, 'content' => $content];
     }
 );
 
 echo Card()->title('Title')->content('Content');
 ```
 
-See [Components](/guide/components) for composition and
-[Compiled Components](/guide/compiled) for artifacts, caching and the
-per-request guard.
+See [Components](/guide/components) for composition,
+[Compiled Rendering](/guide/compiled) for caching and the per-request guard,
+and [Artifacts & Deployment](/guide/artifacts) for artifacts and production
+deployment.
 
 ## State Management
 
@@ -183,15 +187,19 @@ State is plain PHP: values are passed into the shape as data.
 
 ### Simple State
 
-```php
+```php [components/Counter.cmp.php]
 <?php
 
-// components/Counter.cmp.php
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
 use function Pure\Component\{component, register};
 use function Pure\HTML\span;
+
+function Counter(mixed ...$children): Call
+{
+    return component(__FUNCTION__, ...$children);
+}
 
 register(Counter(...),
     factory: static fn () => span(Slot::value('count'))->id('counter'),
@@ -200,12 +208,7 @@ register(Counter(...),
     }
 );
 
-function Counter(int $count): Call
-{
-    return component('Counter')->count($count);
-}
-
-echo Counter(0);
+echo Counter()->count(0);
 ```
 
 ### Global State
@@ -241,6 +244,8 @@ different markup is dispatched in the data layer: render each item through the
 call function that fits it and pass the joined markup into a raw slot.
 
 ```php
+<?php
+
 function Blocks(array $blocks): string
 {
     $html = '';
@@ -268,6 +273,7 @@ full treatment.
 
 ## Next Steps
 
-- [Compiled Components](/guide/compiled) - The production rendering path
 - [Props and Slots](/guide/props) - How data is bound to shapes
-- [Basic Usage](/guide/basic-usage) - The tag API used by snippets
+- [Components](/guide/components) - Components wrap shapes: the recommended path
+- [Compiled Rendering](/guide/compiled) - How a component's template compiles
+- [Artifacts & Deployment](/guide/artifacts) - `pure compile` artifacts and production deployment

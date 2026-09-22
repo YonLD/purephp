@@ -1,9 +1,13 @@
 # 工具函数
 
+**前置**：[基本概念](/zh/guide/concepts)；**本页**：`clx()`、`sty()` 与 `renderHTML()` / `renderXML()`。
+
 PurePHP 提供了一些实用的工具函数来简化开发：`clx()` 和 `sty()` 在设置元素属性时自动使用，
 `renderHTML()` / `renderXML()` 则为标签树或组件调用的渲染结果拼接文档声明。
 
-*`clx()` 和 `sty()` 不受编译渲染影响：在形状中构建静态属性时照常使用，动态值则通过 `Slot::value()` / `Slot::raw()` 绑定——参见[编译组件](/zh/guide/compiled)。下面的多数示例使用标签 API，它对代码片段和调试依然有效。*
+::: tip 工具函数与编译渲染
+`clx()` 和 `sty()` 不受编译渲染影响：在 Shape 中构建静态属性时照常使用，动态值则通过 `Slot::value()` / `Slot::raw()` 绑定——参见[编译渲染](/zh/guide/compiled)。下面的多数示例使用标签 API，它对代码片段和调试依然有效。
+:::
 
 ## clx 函数
 
@@ -73,13 +77,9 @@ $size = 'large';
 div('Content')
     ->class('btn', 'btn-primary', $isActive ? 'active' : null, $size)
     ->print();
-
-// 等同于
-use function Pure\Utils\clx;
-
-$classes = clx('btn', 'btn-primary', $isActive ? 'active' : null, $size);
-div('Content')->class($classes)->print();
 ```
+
+属性里直接传多个参数即可；只有需要单独拿到合并后的字符串时，才直接调用 `clx()`。
 
 ## sty 函数
 
@@ -137,18 +137,9 @@ div('Content')
         'margin' => '10px 0'
     ])
     ->print();
-
-// 等同于
-use function Pure\Utils\sty;
-
-$styles = sty([
-    'background-color' => '#f0f0f0',
-    'padding' => '20px',
-    'border-radius' => '8px',
-    'margin' => '10px 0'
-]);
-div('Content')->style($styles)->print();
 ```
+
+直接传数组即可；只有需要单独拿到合并后的样式字符串时，才直接调用 `sty()`。
 
 ## renderHTML 与 renderXML
 
@@ -184,7 +175,7 @@ echo renderHTML(component('Cover')); // 组件调用同样使用该文件头
 
 ### 动态按钮组件
 
-静态配置决定 renderer 的键；标签文本等每次请求的值则是槽位：
+静态配置决定 renderer 的键；标签文本等每次请求的值则是 Slot：
 
 ```php
 <?php
@@ -219,7 +210,8 @@ function ActionButton(
 }
 
 // 仅为渲染时的值；为 null 的属性会被省略。
-echo ActionButton('Submit', 'success', 'large', false, sty(['opacity' => 1, 'cursor' => 'pointer']));
+$style = sty(['opacity' => 1, 'cursor' => 'pointer']);
+echo ActionButton('Submit', 'success', 'large', false, $style);
 ```
 
 ### 响应式卡片组件
@@ -235,8 +227,12 @@ use Pure\Core\Slot;
 
 use function Pure\HTML\{div, h3, p};
 
-function Card(string $title, iterable|string $content, string $theme = 'light', bool $featured = false): string
-{
+function Card(
+    string $title,
+    iterable|string $content,
+    string $theme = 'light',
+    bool $featured = false
+): string {
     static $renders = [];
 
     $render = $renders["{$theme}|" . (int) $featured] ??= Compile::shape(
