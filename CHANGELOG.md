@@ -7,8 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `pure help` is accepted as a name for the help, and a bare `pure` prints it on
+  stdout with exit 0 rather than treating the missing subcommand as an error.
+- Both commands accept `--` before their paths, so a directory whose name starts
+  with a dash is reachable.
+- `pure` reports a missing Composer autoloader as `run \`composer install\``
+  instead of a raw `Error: Failed opening required`, and a top-level handler
+  turns a crash anywhere in a command into one `pure: <reason>` line instead of
+  a stack trace through the internal classes.
+- `pure check` counts the `info` notes it printed, so the `checked N unit(s)`
+  summary accounts for every line the run produced.
+- The usage text of both commands documents the exit codes.
+
+### Changed
+
+- **Breaking** — a usage error exits `2` instead of `1`, so a CI script can tell
+  "the command line was wrong" from "the code has errors". `0` and `1` keep
+  their meaning; a script that tested `-eq 1` for a typo now has to accept `2`.
+- Findings are printed as `path:line: level: message`. A finding about a fluent
+  call carries the line of its `->prop(...)` setter, so an editor can jump to it;
+  a unit-level finding names its file without a line.
+- Errors and warnings go to stderr, and the `missing:` / `stale:` reports of
+  `pure compile --check` with them. The `ok:` lines, the `info` notes and the
+  summary are results and stay on stdout, so `pure check . 2>/dev/null` leaves
+  only what passed.
+- The `checked N unit(s)` summary appends `, N note(s)` when the run printed
+  `info` findings.
+
+### Fixed
+
+- A misspelled required prop is reported as the unknown prop it is, with a
+  `did you mean` pointing at the intended one. The unknown-prop check now runs
+  before the missing-prop check, because a typo both introduces an unknown prop
+  *and* leaves the real one missing — the old order reported the gap and never
+  mentioned the typo. Each unknown prop now gets its own suggestion rather than
+  only the first.
+
 ### Documentation
 
+- The `.cmp.php` suffix is stated as the convention `pure compile` and
+  `pure check` discover by, in the Quick Start and as a Troubleshooting entry
+  covering both messages a wrong suffix produces (English and Chinese).
+- The artifacts guide documents the `path:line: level: message` format, the
+  stdout/stderr split and the three exit codes (English and Chinese).
+- The Chinese upgrading page no longer claims the changelog describes an
+  untagged release; `1.0.0` is tagged. Both pages now tell a reader arriving
+  from a search result how to check that the page matches their version.
+- The Chinese site's own labels (language menu, outline, footer, previous and
+  next) are translated instead of falling back to the shared English chrome.
+- The event-counter example attaches both buttons with `addEventListener`, which
+  is what the events guide recommends, instead of using an inline `onclick` on
+  one of them and a listener on the other.
 - A unit's call function declares `mixed ...$children` only when its template
   reads the `children` slot; every other unit takes none and is written as
   `function Card(): Call { return component(__FUNCTION__); }`. The declaration
