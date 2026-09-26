@@ -11,9 +11,9 @@ use function Pure\SVG\{svg, svgUse};
  * One "custom cards" item: the cover image is the card background, the icon is
  * the avatar. `CustomCard()->title(...)->icon(...)->location(...)->date(...)->bgImg(...)`.
  */
-function CustomCard(mixed ...$children): Call
+function CustomCard(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

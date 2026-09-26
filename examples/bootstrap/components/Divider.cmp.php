@@ -8,9 +8,9 @@ use function Pure\HTML\div;
 /**
  * The divider between two page sections: `Divider()`.
  */
-function Divider(mixed ...$children): Call
+function Divider(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

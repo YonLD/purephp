@@ -11,9 +11,9 @@ require_once __DIR__ . '/Icon.cmp.php';
 /**
  * One "icon grid" item: `CellIcon()->icon('speedometer2')->title(...)->content(...)`.
  */
-function CellIcon(mixed ...$children): Call
+function CellIcon(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

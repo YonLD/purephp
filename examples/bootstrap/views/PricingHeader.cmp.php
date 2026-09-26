@@ -12,9 +12,9 @@ require_once __DIR__ . '/../app/services/PricingService.php';
  * The pricing page heading: it fetches the title and the description from the
  * service. `PricingHeader()`.
  */
-function PricingHeader(mixed ...$children): Call
+function PricingHeader(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

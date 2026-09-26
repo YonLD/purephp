@@ -65,9 +65,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\p;
 
-function CounterValue(mixed ...$children): Call
+function CounterValue(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(
@@ -91,9 +91,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{button, div};
 
-function Counter(mixed ...$children): Call
+function Counter(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(
@@ -225,9 +225,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\div;
 
-function SearchResult(mixed ...$children): Call
+function SearchResult(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(
@@ -251,9 +251,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\div;
 
-function ResultList(mixed ...$children): Call
+function ResultList(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(
@@ -285,9 +285,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, input, label};
 
-function SearchBox(mixed ...$children): Call
+function SearchBox(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(

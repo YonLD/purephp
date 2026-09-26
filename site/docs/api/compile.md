@@ -47,7 +47,8 @@ paths share the same escaping implementation (`Pure\Core\Escaper`, `@internal`).
 
 A component unit registers a lazy template factory under the name of its call
 function: the call function returns a `Call` and carries the component name
-exactly once (`component(__FUNCTION__, ...)`), and the unit's `prepare()` hook
+exactly once — `component(__FUNCTION__)`, or `component(__FUNCTION__, ...$children)`
+when its template reads the `children` slot — and the unit's `prepare()` hook
 is the typed prop contract. A call produces the markup on string conversion:
 
 ```php
@@ -59,9 +60,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -86,9 +87,10 @@ component call to `Pure\Utils\renderHTML()` / `renderXML()`, or prepend the
 header yourself — the root tag's `documentHeader()`, or the
 `HTML::DOCUMENT_HEADER` / `XML::DOCUMENT_HEADER` constants.
 
-A fluent call binds one prop per setter (`Card($children)->title($title)`);
+A fluent call binds one prop per setter (`Card()->title($title)`);
 `null` leaves a prop unset, and children bind the reserved `children` slot
-(`Slot::raw('children')`). `Call` also provides `props(array $props): self` for
+(`Slot::raw('children')`), which only a unit whose template reads that slot
+declares in its call function. `Call` also provides `props(array $props): self` for
 setting a record of named props in one call. A later `null` does not clear a
 value that an earlier setter already stored; choose the final value before
 setting it. A generic component prop keeps `false` as data; the template's Slot

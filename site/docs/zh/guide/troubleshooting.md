@@ -109,7 +109,11 @@ register(Button(...), static fn () =>
 echo Button('Save');
 ```
 
-没有 `Slot::raw('children')` 的模板按设计会拒绝非空 children。
+没有 `Slot::raw('children')` 的模板按设计会拒绝非空 children。反过来也会悄悄丢失
+内容：调用函数没有声明 `mixed ...$children` 时，调用传入的参数会被忽略，因为 PHP 允许
+向用户函数多传参数。模板确实读取了该 Slot 而 children 仍然缺失时，声明它并转发给
+`component()`。`pure check` 检查的是 `prepare()` 与 `->prop()` 链，不读调用函数，因此
+不会报告这种情况。
 
 ## 转义与标记
 

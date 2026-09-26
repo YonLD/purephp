@@ -43,7 +43,8 @@ echo $shape([
 
 ## 组件单元
 组件单元把惰性模板工厂注册到调用函数的名字下：调用函数返回 `Call`，用
-`component(__FUNCTION__, ...)` 只写一遍组件名；单元的类型化
+`component(__FUNCTION__)`（只有模板读取 `children` Slot 时才写
+`component(__FUNCTION__, ...$children)`）只写一遍组件名；单元的类型化
 prop 契约放在 `prepare()` 钩子里：
 
 ```php
@@ -55,9 +56,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -67,6 +68,8 @@ register(Card(...),
         return ['title' => $title, 'content' => $content];
     }
 );
+
+echo Card()->title('Title')->content('Content');
 ```
 
 | 函数或类型 | 行为 |
@@ -80,8 +83,9 @@ register(Card(...),
 （`$root->documentHeader()`，或常量 `HTML::DOCUMENT_HEADER` /
 `XML::DOCUMENT_HEADER`）。
 
-链式调用绑定 props：`Card($children)->title($title)` 每个 prop 对应一个 Slot，`null`
-表示不设置该 prop，children 绑定保留 Slot `children`（模板用 `Slot::raw('children')`）。
+链式调用绑定 props：`Card()->title($title)` 每个 prop 对应一个 Slot，`null`
+表示不设置该 prop，children 绑定保留 Slot `children`（模板用 `Slot::raw('children')`），
+只有读取该 Slot 的单元才在调用函数里声明 children。
 `Call` 还提供 `props(array $props): self`，可一次设置一组命名 prop。后续传 `null` 不会清除
 之前已经保存的值，应在设置前决定最终值。通用组件 prop 会把 `false` 保存为数据，最终由
 模板 Slot 决定如何渲染；特殊的 `class()` 与 `style()` setter 仍使用标签式的合并规则。
@@ -135,8 +139,10 @@ $shape([
 ## Slot 类型
 
 Slot 构造器、值类型、位置相关语义与错误路径的唯一规范表在
-[Props 与 Slot](/zh/guide/props#slot-参考)。本页不重复该表，只保留 API 使用时最容易
-混淆的边界：
+[Props 与 Slot](/zh/guide/props#slot-参考)：它覆盖构造参数、位置相关的 value/raw 语义、
+修饰符与带路径的错误，本页不重复该表。
+
+使用 API 时请留意这两条边界：
 
 - `required(false)` 与 `default($value)` 会使值/raw Slot 可选，但必填值/raw Slot 在子节点/文本位
   仍拒绝显式 `null`。属性位的 `Slot::value()` 遵循 `setAttr()`，会省略 `null`；raw 不能

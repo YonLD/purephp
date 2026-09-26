@@ -73,23 +73,18 @@ $pureBody = static function (array $v): string {
 `renderHTML()` / `renderXML()`，直接渲染 `Renderer` 时用根标签的 `documentHeader()`。
 `examples/bootstrap` 的组件都是建立在其上的单元：
 
-```php
+```php [components/Icon.cmp.php]
 <?php
 
-use Pure\Component\Binds;
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
 use function Pure\Component\{component, register};
-use function Pure\HTML\{body, head, html, title};
 use function Pure\SVG\{svg, svgUse};
-use function Pure\Utils\renderHTML;
 
-// components/Icon.cmp.php：类型化 prop 契约在 prepare() 钩子里，背后是预编译模板
-
-function Icon(mixed ...$children): Call
+function Icon(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Icon(...),
@@ -101,11 +96,22 @@ register(Icon(...),
         return ['href' => $href, 'class' => $class];
     }
 );
+```
 
-// views/features.cmp.php：页面数据由 prepare() 提供
-function Features(mixed ...$children): Call
+```php [views/features.cmp.php]
+<?php
+
+use Pure\Component\Binds;
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{body, head, html, title};
+use function Pure\Utils\renderHTML;
+
+function Features(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Features(...),
@@ -282,11 +288,21 @@ $html = $render($data);
 Shape，因此视图文件仍然无依赖，而请求处理器会用到库。
 
 视图会按 Shape 结构为每个顶层 Slot 生成 `@var` 注解，静态分析器无需排除规则或额外
-配置即可读取这些展开的局部变量：值 Slot 是 `scalar|null|\Stringable`（即
-`htmlspecialchars()` 可接受的类型），条件 Slot 是 `mixed`，child 与列表作用域会推导成
-array shape 及它们的 iterable；特殊 Slot 名声明在加载器的 `$data` 数组上。这些注解
-只是注释，不增加任何输出字节。唯一仍会告警的是没有数组默认值的可选容器 Slot：
-生成的读取会回退到 `null`，注解如实反映这一点。
+配置即可读取这些展开的局部变量：
+
+```php
+<?php
+
+/**
+ * @var scalar|null|\Stringable $title
+ * @var array{columns: ...} $content
+ */
+```
+
+值 Slot 是 `scalar|null|\Stringable`（即 `htmlspecialchars()` 可接受的类型），条件
+Slot 是 `mixed`，child 与列表作用域会推导成 array shape 及它们的 iterable；特殊 Slot
+名声明在加载器的 `$data` 数组上。这些注解只是注释，不增加任何输出字节。唯一仍会告警的
+是没有数组默认值的可选容器 Slot：生成的读取会回退到 `null`，注解如实反映这一点。
 
 视图是 include，请在生产开启 opcache：关闭时每次渲染都会重新解析文件。
 

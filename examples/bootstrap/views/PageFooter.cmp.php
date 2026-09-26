@@ -11,11 +11,11 @@ require_once __DIR__ . '/../app/services/PricingService.php';
 
 /**
  * The page footer: it fetches the logo and the link columns from the service
- * and renders its own children. `PageFooter()`.
+ * and renders them into its own template. `PageFooter()`.
  */
-function PageFooter(mixed ...$children): Call
+function PageFooter(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

@@ -16,12 +16,10 @@ require_once __DIR__ . '/../app/services/FeaturesService.php';
  *         ->section('columns')
  *         ->class('row g-4 py-5 row-cols-1 row-cols-lg-3')
  *         ->item(static fn (array $record): Call => IconColumn()->props($record));
- *
- * @param callable(array<string, string>): Call|string $item Renders one item record.
  */
-function Section(mixed ...$children): Call
+function Section(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

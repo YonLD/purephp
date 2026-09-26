@@ -89,23 +89,18 @@ for a tag tree or a component call, and the root tag's `documentHeader()` gives
 the header when a `Renderer` is rendered directly. Components in
 `examples/bootstrap` are units built on that:
 
-```php
+```php [components/Icon.cmp.php]
 <?php
 
-use Pure\Component\Binds;
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
 use function Pure\Component\{component, register};
-use function Pure\HTML\{body, head, html, title};
 use function Pure\SVG\{svg, svgUse};
-use function Pure\Utils\renderHTML;
 
-// components/Icon.cmp.php: typed props, backed by its precompiled template
-
-function Icon(mixed ...$children): Call
+function Icon(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Icon(...),
@@ -115,11 +110,22 @@ register(Icon(...),
         return ['href' => $href, 'class' => $class];
     }
 );
+```
 
-// views/features.cmp.php: the page skeleton, its blocks supplied by prepare()
-function Features(mixed ...$children): Call
+```php [views/features.cmp.php]
+<?php
+
+use Pure\Component\Binds;
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{body, head, html, title};
+use function Pure\Utils\renderHTML;
+
+function Features(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Features(...),
@@ -342,6 +348,14 @@ but it does not carry the strict slot semantics of the compiled renderer:
 
 A plain view is an include: enable opcache in production, or every render parses
 the file again.
+
+A top-level slot reads as a plain variable and a nested slot reads as the array it
+lives in, with escaping inlined, so a plain view stays as portable as a
+hand-written template.
+
+With components, the controller renders each component first and passes its
+markup to the page shape as raw bindings, so the view file still needs no
+library while the request handler does.
 
 The view declares every root slot with an `@var` annotation derived from the
 shape, so static analyzers read the extracted locals without an exclusion:

@@ -9,9 +9,9 @@ use function Pure\SVG\{svg, svgUse};
  * An icon that references the SVG symbol sheet:
  * `Icon()->href('#home')` renders `<svg class="bi" ...><use href="#home" /></svg>`.
  */
-function Icon(mixed ...$children): Call
+function Icon(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

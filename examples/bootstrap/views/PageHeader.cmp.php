@@ -10,11 +10,12 @@ require_once __DIR__ . '/../app/services/PricingService.php';
 
 /**
  * The page header: it fetches the company name, the nav links and the sign-up
- * link from the service and renders its own children. `PageHeader()`.
+ * link from the service and renders them into its own template.
+ * `PageHeader()`.
  */
-function PageHeader(mixed ...$children): Call
+function PageHeader(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

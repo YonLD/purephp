@@ -127,9 +127,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -146,8 +146,9 @@ register(Card(...),
 echo Card()->title('Title')->content('Content');
 ```
 
-props 在调用上像标签属性一样链式设置，children 传给调用函数本身，`->render()`（或字符串转换）
-产出标记；`prepare()` 的参数就是类型化 prop 契约，PHP 会强制它们的类型。
+props 在调用上像标签属性一样链式设置，children 传给声明了 children 的调用函数本身，
+`->render()`（或字符串转换）产出标记；`prepare()` 的参数就是类型化 prop 契约，
+PHP 会强制它们的类型。
 
 组合方式见[组件](/zh/guide/components)，缓存与每请求守卫见[编译渲染](/zh/guide/compiled)，
 产物与生产部署见[产物与部署](/zh/guide/artifacts)。
@@ -167,9 +168,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\span;
 
-function Counter(mixed ...$children): Call
+function Counter(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Counter(...),

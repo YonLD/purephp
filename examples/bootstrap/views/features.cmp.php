@@ -27,9 +27,9 @@ require_once __DIR__ . '/../app/services/FeaturesService.php';
  * The features page call function: props flow through the unit's prepare()
  * hook, so a call is just component('Features') at the page functions below.
  */
-function Features(mixed ...$children): Call
+function Features(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Features(...), static function () {

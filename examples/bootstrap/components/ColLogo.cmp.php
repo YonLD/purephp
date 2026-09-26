@@ -8,9 +8,9 @@ use function Pure\HTML\{div, img, small};
 /**
  * The footer logo column: `ColLogo()->src(...)->width('24')->height('24')->text(...)`.
  */
-function ColLogo(mixed ...$children): Call
+function ColLogo(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

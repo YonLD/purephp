@@ -27,9 +27,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -80,9 +80,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\span;
 
-function Badge(mixed ...$children): Call
+function Badge(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Badge(...),
@@ -98,24 +98,25 @@ Badge()->label('Save')->class('badge');
 ## Fluent Calls
 
 A component call reads like a tag: props are set with the same fluent setters,
-children are passed to the call, and the result nests wherever a tag does.
+children are passed to the call when the unit declares them, and the result
+nests wherever a tag does.
 
-```php [components/Card.cmp.php]
+```php [components/PricingCard.cmp.php]
 <?php
 
-// the same unit, called fluently
+// a unit that also wraps the markup the call passes
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
 use function Pure\Component\{component, register};
 use function Pure\HTML\{button, div, h2, li, ul};
 
-function Card(mixed ...$children): Call
+function PricingCard(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
 }
 
-register(Card(...),
+register(PricingCard(...),
     factory: static fn () => div(
         Slot::raw('children'),
         h2(Slot::value('type'))->class('card-title'),
@@ -128,7 +129,7 @@ register(Card(...),
 );
 
 echo div(
-    Card(h2('Pro'))
+    PricingCard(h2('Pro'))
         ->type('Free')
         ->features([['value' => '10 users'], ['value' => '2 GB']])
         ->text('Sign up for free')
@@ -137,8 +138,8 @@ echo div(
 ```
 
 - `component($name, ...$children)` returns a `Pure\Component\Call`, which
-  implements `Pure\Core\Markup`: `div(Card(...))` emits it verbatim and renders
-  it lazily with the tree, exactly like a tag child.
+  implements `Pure\Core\Markup`: `div(PricingCard(...))` emits it verbatim and
+  renders it lazily with the tree, exactly like a tag child.
 - Props bind slot names, so the template reads them with `Slot::value()`,
   `Slot::each()` or `Slot::child()`. `class()` and `style()` join their
   arguments exactly like the tag setters. A `null` prop leaves the prop unset
@@ -164,8 +165,13 @@ unset and a `Slot` is rejected; use `class()` or `style()` when joining values
 needs their special behavior.
 
 - Children bind the reserved `children` slot: read it with
-  `Slot::raw('children')`. A childless call renders it empty, and a call with
-  children on a template that has no `children` slot throws.
+  `Slot::raw('children')`. A childless call renders it empty. The two mistakes
+  fail differently — a call function that forwards children to a template
+  without that slot throws on render, and a call function that takes none drops
+  them without a warning — so the declaration follows the template: a unit whose
+  template reads that slot declares `mixed ...$children` and forwards it to
+  `component()`, and every other unit writes
+  `function Card(): Call { return component(__FUNCTION__); }`, a plain prop chain.
 - A prop the template does not read is reported by the development guard with a
   `did you mean` suggestion, and by `pure check` statically.
 
@@ -177,15 +183,13 @@ PHP enforces the types, and a missing or unknown prop fails before rendering —
 and the array it returns is what binds the template:
 
 ```php
-<?php
-
-function Section(mixed ...$children): Call
+function Section(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Section(...),
-    factory: static fn () => div(...),
+    factory: static fn () => div(...), // the template; the bindings below are its slots
     prepare: static function (string $section, string $class, callable $item): array {
         $data = FeaturesService::section($section);
 
@@ -212,8 +216,6 @@ differ, the shape of a list prop's items, or that a prop is on its way out. A
 the template instead of inferring them:
 
 ```php
-<?php
-
 use Pure\Component\Prop;
 
 use function Pure\HTML\div;
@@ -341,9 +343,9 @@ use function Pure\Component\{component, register};
 use function Pure\HTML\{body, head, html, title};
 use function Pure\Utils\renderHTML;
 
-function Features(mixed ...$children): Call
+function Features(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Features(...),

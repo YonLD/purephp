@@ -9,9 +9,9 @@ use function Pure\HTML\{a, div, h5, li, ul};
  * One footer link column:
  * `ColLinks()->title('Company')->links([['text' => 'Team', 'href' => '#']])`.
  */
-function ColLinks(mixed ...$children): Call
+function ColLinks(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

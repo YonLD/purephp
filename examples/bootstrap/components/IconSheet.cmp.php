@@ -3,15 +3,14 @@
 use Pure\Component\Call;
 
 use function Pure\Component\{component, register};
-use function Pure\HTML\{div, h1, head, html, link, main, meta, title};
 use function Pure\SVG\{path, svg, symbol, title as svgTitle};
 
 /**
  * The SVG symbol sheet the features page's icons reference: `IconSheet()`.
  */
-function IconSheet(mixed ...$children): Call
+function IconSheet(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

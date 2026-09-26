@@ -92,9 +92,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -113,6 +113,8 @@ register(Card(...),
         ];
     }
 );
+
+echo Card()->title('Title')->content('Content');
 ```
 
 模板内部：嵌套 Shape 用 `Slot::child()`，列表用 `Slot::each()`，可选/条件标记用

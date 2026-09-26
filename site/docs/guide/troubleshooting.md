@@ -118,6 +118,12 @@ echo Button('Save');
 ```
 
 A template without `Slot::raw('children')` rejects non-empty children by design.
+The reverse also loses content quietly: a call function that does not declare
+`mixed ...$children` ignores what the call is given, because PHP accepts extra
+arguments to a user function. When the template does read the slot and the
+children are still missing, declare them and forward them to `component()`.
+`pure check` reads `prepare()` and the `->prop()` chain, not the call function,
+so it does not report this.
 
 ## Escaping and markup
 

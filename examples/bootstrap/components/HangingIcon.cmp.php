@@ -10,9 +10,9 @@ require_once __DIR__ . '/Icon.cmp.php';
 /**
  * One "hanging icons" item: `HangingIcon()->icon('bootstrap')->title(...)->content(...)->link(...)->linkText(...)`.
  */
-function HangingIcon(mixed ...$children): Call
+function HangingIcon(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

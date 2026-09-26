@@ -77,9 +77,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -110,14 +110,15 @@ How it fits together:
   only stores the factory — it builds nothing.
 - `prepare()` is the typed prop contract: its parameters are the props, PHP
   enforces their types, and the returned array binds the template.
-- Props are set as fluent setters; children are passed to the call itself, and
-  the result nests wherever a tag does.
+- Props are set as fluent setters and the call nests wherever a tag does; a unit
+  whose template reads the `children` slot declares `mixed ...$children` and
+  forwards them to `component()`.
 
 ### 3. Children, lists and buttons
 
-The same unit, called fluently:
+A unit whose template also renders the markup the call passes:
 
-```php [components/Card.cmp.php]
+```php [components/PricingCard.cmp.php]
 <?php
 
 declare(strict_types=1);
@@ -130,12 +131,12 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{button, div, h2, li, ul};
 
-function Card(mixed ...$children): Call
+function PricingCard(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
 }
 
-register(Card(...),
+register(PricingCard(...),
     factory: static fn () => div(
         Slot::raw('children'),
         h2(Slot::value('type'))->class('card-title'),
@@ -148,7 +149,7 @@ register(Card(...),
 );
 
 echo div(
-    Card(h2('Pro'))
+    PricingCard(h2('Pro'))
         ->type('Free')
         ->features([['value' => '10 users'], ['value' => '2 GB']])
         ->text('Sign up for free')

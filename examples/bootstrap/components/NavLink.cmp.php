@@ -8,9 +8,9 @@ use function Pure\HTML\a;
 /**
  * One navigation link with its own class list: `NavLink()->text('Home')->href('/')`.
  */
-function NavLink(mixed ...$children): Call
+function NavLink(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

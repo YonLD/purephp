@@ -20,9 +20,9 @@ require_once __DIR__ . '/../app/services/PricingService.php';
  * The pricing page skeleton: everything but the four component blocks is
  * static. `pure compile` precompiles it into views/pricing.pure.php.
  */
-function Pricing(mixed ...$children): Call
+function Pricing(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Pricing(...), static fn () => (

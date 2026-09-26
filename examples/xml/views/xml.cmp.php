@@ -51,15 +51,19 @@ function XmlPageShape(): Shape
     );
 }
 
-function Xml(mixed ...$children): Call
+/**
+ * The XML page unit: it serves the shape beside it, so a controller can call
+ * `component('Xml')->addresses($records)`.
+ */
+function Xml(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Xml(...), static fn () => XmlPageShape());
 
 /**
- * The xml page: the document comes from views/xml.shape.php (precompiled with
+ * The xml page: the document comes from views/xml.cmp.php (precompiled with
  * `pure compile`). The XML declaration is not part of the tree, so renderXML()
  * prepends it.
  *

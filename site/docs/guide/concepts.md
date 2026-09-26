@@ -157,9 +157,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -175,6 +175,10 @@ register(Card(...),
 
 echo Card()->title('Title')->content('Content');
 ```
+
+Props are set on the call like tag attributes, children go to a call function
+that declares them, `->render()` (or string conversion) produces the markup, and
+the `prepare()` parameters are the typed prop contract that PHP enforces.
 
 See [Components](/guide/components) for composition,
 [Compiled Rendering](/guide/compiled) for caching and the per-request guard,
@@ -196,9 +200,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\span;
 
-function Counter(mixed ...$children): Call
+function Counter(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Counter(...),

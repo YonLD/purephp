@@ -36,15 +36,19 @@ function CounterPageShape(): Shape
     );
 }
 
-function Counter(mixed ...$children): Call
+/**
+ * The counter page unit: it serves the shape beside it, so a controller can
+ * call `component('Counter')->initial($count)`.
+ */
+function Counter(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Counter(...), static fn () => CounterPageShape());
 
 /**
- * The counter page: the document skeleton comes from views/counter.shape.php
+ * The counter page: the document skeleton comes from views/counter.cmp.php
  * (precompiled with `pure compile`). The document header is not part of the
  * tree, so it is prepended manually.
  *

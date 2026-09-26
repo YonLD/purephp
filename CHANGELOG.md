@@ -5,6 +5,42 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- A unit's call function declares `mixed ...$children` only when its template
+  reads the `children` slot; every other unit takes none and is written as
+  `function Card(): Call { return component(__FUNCTION__); }`. The declaration
+  follows the template because the two mistakes fail differently: a call
+  function that forwards children to a template without the slot throws
+  `component 'X' does not read children` on render, while a call function that
+  takes none drops them silently, because PHP accepts extra arguments to a user
+  function (`pure check` does not report it). The example units, the guides
+  (English and Chinese), and the `register()` / `component()` docblocks follow
+  the rule, and the component API page now demonstrates the `...$children` form
+  beside the childless one.
+- The English and Chinese guides are aligned where they had drifted: the
+  Chinese pages gain the missing `echo Card()->...` call, the plain-view `@var`
+  fence and the plain-view caveats that only the English pages carried, and the
+  Chinese counterparts no longer merge paragraphs the English pages keep apart.
+- `## [1.0.0]` had a link reference without a definition; the release now links
+  to its tag page, like the `[Unreleased]` link above it.
+- The documentation's PHP fences now say what they are: each example unit is
+  shown as its own file (one unit file registers one component), and only
+  self-contained snippets carry a `<?php` opener, so a fence that survives
+  `php -l` is also a fence that runs.
+
+### Examples
+
+- `examples/bootstrap/views/cover.php` called `renderHTML()` without importing
+  it, so the bootstrap example's `/cover` route failed with `Call to undefined
+  function renderHTML()` — the one route the upgrade guide tells you to check.
+- `examples/event-counter/views/counter.cmp.php` and
+  `examples/xml/views/xml.cmp.php` pointed at `*.shape.php` files that do not
+  exist, and their call functions were the only example units without a
+  docblock.
+
 ## [1.0.0] - 2026-09-26
 
 First public release.
@@ -533,3 +569,4 @@ First public release.
   views now follow `Tag::isDocumentRoot()`.
 
 [Unreleased]: https://github.com/YonLD/purephp/commits/main
+[1.0.0]: https://github.com/YonLD/purephp/releases/tag/v1.0.0

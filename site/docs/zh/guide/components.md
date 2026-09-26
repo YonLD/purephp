@@ -25,9 +25,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\{div, h2, p};
 
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Card(...),
@@ -71,9 +71,9 @@ use Pure\Core\Slot;
 use function Pure\Component\{component, register};
 use function Pure\HTML\span;
 
-function Badge(mixed ...$children): Call
+function Badge(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Badge(...),
@@ -88,25 +88,25 @@ Badge()->label('Save')->class('badge');
 
 ## 链式调用
 
-组件调用可以写得和标签一样：props 用同样的链式 setter 设置，children 直接传给调用，
-返回值可以像标签一样嵌套。
+组件调用可以写得和标签一样：props 用同样的链式 setter 设置，只有声明了 children 的
+单元才把 children 传给调用，返回值可以像标签一样嵌套。
 
-```php [components/Card.cmp.php]
+```php [components/PricingCard.cmp.php]
 <?php
 
-// 同一个单元，改用链式调用
+// 同时包裹调用所传入标记的单元
 use Pure\Component\Call;
 use Pure\Core\Slot;
 
 use function Pure\Component\{component, register};
 use function Pure\HTML\{button, div, h2, li, ul};
 
-function Card(mixed ...$children): Call
+function PricingCard(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
 }
 
-register(Card(...),
+register(PricingCard(...),
     factory: static fn () => div(
         Slot::raw('children'),
         h2(Slot::value('type'))->class('card-title'),
@@ -119,7 +119,7 @@ register(Card(...),
 );
 
 echo div(
-    Card(h2('Pro'))
+    PricingCard(h2('Pro'))
         ->type('Free')
         ->features([['value' => '10 users'], ['value' => '2 GB']])
         ->text('Sign up for free')
@@ -128,7 +128,7 @@ echo div(
 ```
 
 - `component($name, ...$children)` 返回 `Pure\Component\Call`，它实现了
-  `Pure\Core\Markup`：`div(Card(...))` 会原样输出并随父树延迟渲染，和标签子节点一致。
+  `Pure\Core\Markup`：`div(PricingCard(...))` 会原样输出并随父树延迟渲染，和标签子节点一致。
 - props 绑定 Slot 名，模板用 `Slot::value()`、`Slot::each()`、`Slot::child()` 读取。
   `class()` 与 `style()` 的合并规则与标签 setter 完全相同；`null` 表示不设置该 prop
   （Slot 随后按“未提供”处理，或回退到默认值）。后续传 `null` 不会清除之前保存的值，
@@ -149,7 +149,10 @@ props(array $props): self
 请使用具有特殊行为的 `class()` 或 `style()`。
 
 - children 绑定保留 Slot `children`，模板用 `Slot::raw('children')` 读取。不传 children
-  时渲染为空；模板没有 `children` Slot 却传了 children 会抛出异常。
+  时渲染为空。两种写错的后果不同：调用函数转发了 children 而模板没有该 Slot，渲染时抛
+  异常；调用函数根本不接收 children，则静默丢弃，没有任何提示。所以声明要跟随模板——
+  模板读取该 Slot 的单元声明 `mixed ...$children` 并转发给 `component()`，其余单元
+  写成 `function Card(): Call { return component(__FUNCTION__); }`，调用就是一条纯 props 链。
 - 模板不读取的 prop 会由开发守卫给出 `did you mean` 提示，`pure check` 也能静态发现。
 
 ### 用 prepare() 给 props 加类型
@@ -159,15 +162,13 @@ props(array $props): self
 模板的数据：
 
 ```php
-<?php
-
-function Section(mixed ...$children): Call
+function Section(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Section(...),
-    factory: static fn () => div(...), // 模板从略
+    factory: static fn () => div(...), // 模板从略；下面的绑定就是它的 Slot
     prepare: static function (string $section, string $class, callable $item): array {
         $data = FeaturesService::section($section);
 
@@ -192,8 +193,6 @@ Section()->section('columns')->class('row g-4')->item(IconColumn(...));
 靠推断：
 
 ```php
-<?php
-
 use Pure\Component\Prop;
 
 use function Pure\HTML\div;
@@ -307,9 +306,9 @@ use function Pure\Component\{component, register};
 use function Pure\HTML\{body, head, html, title};
 use function Pure\Utils\renderHTML;
 
-function Features(mixed ...$children): Call
+function Features(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 register(Features(...),

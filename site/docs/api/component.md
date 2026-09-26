@@ -34,12 +34,13 @@ function component(string $name, mixed ...$children): Call;
 
 `$name` is either a registered component name, a `*.cmp.php` unit path, or a
 `*.shape.php` template path. A unit's own call function should pass
-`__FUNCTION__`, so its name is written only once:
+`__FUNCTION__`, so its name is written only once. It declares children only when
+its template reads the `children` slot; every other unit takes none:
 
 ```php
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 ```
 
@@ -51,9 +52,9 @@ child is accepted, and string conversion renders the unit lazily.
 A prop is one named binding. The usual fluent form is:
 
 ```php
-echo Card(h2('Pro'))
+echo Card()
     ->title('Free')
-    ->class('card');
+    ->content('Everything you need');
 ```
 
 - `__call($prop, $value)` sets one prop and returns the same call.
@@ -65,7 +66,36 @@ echo Card(h2('Pro'))
   template instead.
 - Children are passed to the call, not through a `children()` setter. They bind
   the reserved `children` slot, which a template reads with
-  `Slot::raw('children')`.
+  `Slot::raw('children')`, so the declaration follows the template: forwarding
+  children to a template without that slot throws on render, and a call
+  function that takes none drops them silently.
+
+A unit that renders its children declares them and forwards them to the call, and
+its call takes them as arguments:
+
+```php [components/Button.cmp.php]
+<?php
+
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{button as htmlButton, span};
+
+function Button(mixed ...$children): Call
+{
+    return component(__FUNCTION__, ...$children);
+}
+
+register(Button(...), static fn () =>
+    htmlButton(Slot::raw('children'), ' ', Slot::value('label'))->class('btn')
+);
+
+echo Button(span('Save'))->label('now');
+```
+
+Children follow the tag rules: a `Tag` or `Markup` child is verbatim markup, a
+string child is escaped text, and a `Slot` child is rejected.
 
 The class has `render(): string` and `__toString(): string`. The constructor is
 marked internal; create calls with `component()` rather than instantiating

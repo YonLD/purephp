@@ -62,8 +62,9 @@ composer test
 register(Card(...), factory: static fn () => div(...));
 ```
 
-调用函数返回 `component(__FUNCTION__, ...$children)`。这样组件名与单元文件只在
-一个地方定义。若旧示例重复写了名称字面量，请迁移；只有明确替换已有注册时才使用
+调用函数返回 `component(__FUNCTION__)`；只有模板读取 `children` Slot 时才返回
+`component(__FUNCTION__, ...$children)`。这样组件名与单元文件只在一个地方定义。
+若旧示例重复写了名称字面量，请迁移；只有明确替换已有注册时才使用
 `override: true`。
 
 ### 模板构建器需要显式标记

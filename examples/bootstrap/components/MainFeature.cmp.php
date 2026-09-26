@@ -9,9 +9,9 @@ use function Pure\HTML\{a, div, h3, p};
  * The "features with title" main column:
  * `MainFeature()->title(...)->content(...)->link(...)->linkText(...)`.
  */
-function MainFeature(mixed ...$children): Call
+function MainFeature(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

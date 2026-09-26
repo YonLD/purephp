@@ -32,12 +32,13 @@ function component(string $name, mixed ...$children): Call;
 ```
 
 `$name` 可以是已注册组件名、`*.cmp.php` 单元路径或 `*.shape.php` 模板路径。单元
-自己的调用函数应传入 `__FUNCTION__`，让名称只写一次：
+自己的调用函数应传入 `__FUNCTION__`，让名称只写一次；只有模板读取 `children` Slot 的
+单元才声明 children，其余单元不接收 children：
 
 ```php
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 ```
 
@@ -49,9 +50,9 @@ function Card(mixed ...$children): Call
 一个 prop 就是一条命名 binding。常见链式形式如下：
 
 ```php
-echo Card(h2('Pro'))
+echo Card()
     ->title('Free')
-    ->class('card');
+    ->content('Everything you need');
 ```
 
 - `__call($prop, $value)` 设置一个 prop，并返回同一个调用对象。
@@ -60,7 +61,35 @@ echo Card(h2('Pro'))
 - `null` 表示不设置该 prop，与 `Tag::setAttr()` 一致。
 - 不能把 `Slot` 当作 prop；请绑定值，并在模板中读取 Slot。
 - children 传给调用函数，而不是调用 `children()` setter。它们绑定保留的
-  `children` Slot，模板用 `Slot::raw('children')` 读取。
+  `children` Slot，模板用 `Slot::raw('children')` 读取，所以声明要跟随模板：
+  转发给没有该 Slot 的模板会在渲染时抛异常，而不接收 children 的调用函数会
+  静默丢弃。
+
+渲染 children 的单元要声明它们并转发给 `component()`，调用时把它们作为参数传入：
+
+```php [components/Button.cmp.php]
+<?php
+
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{button as htmlButton, span};
+
+function Button(mixed ...$children): Call
+{
+    return component(__FUNCTION__, ...$children);
+}
+
+register(Button(...), static fn () =>
+    htmlButton(Slot::raw('children'), ' ', Slot::value('label'))->class('btn')
+);
+
+echo Button(span('Save'))->label('now');
+```
+
+children 遵循标签的规则：`Tag` 或 `Markup` 子节点按标记原样输出，字符串子节点转义
+为文本，`Slot` 子节点会被拒绝。
 
 该类提供 `render(): string` 与 `__toString(): string`。构造函数标记为 internal；
 请用 `component()`，不要直接实例化 `Call`。

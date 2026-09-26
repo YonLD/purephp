@@ -11,9 +11,9 @@ require_once __DIR__ . '/Icon.cmp.php';
 /**
  * One "columns with icons" item: `IconColumn()->icon('collection')->title(...)->content(...)->link(...)->linkText(...)`.
  */
-function IconColumn(mixed ...$children): Call
+function IconColumn(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

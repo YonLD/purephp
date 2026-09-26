@@ -1,6 +1,5 @@
 <?php declare(strict_types=1);
 
-
 use function Pure\HTML\a;
 use function Pure\HTML\body;
 use function Pure\HTML\div;
@@ -10,13 +9,14 @@ use function Pure\HTML\h3;
 use function Pure\HTML\head;
 use function Pure\HTML\header;
 use function Pure\HTML\html;
-use function Pure\HTML\nav;
+use function Pure\HTML\link;
 use function Pure\HTML\main;
 use function Pure\HTML\meta;
+use function Pure\HTML\nav;
 use function Pure\HTML\p;
-use function Pure\HTML\title;
-use function Pure\HTML\link;
 use function Pure\HTML\style;
+use function Pure\HTML\title;
+use function Pure\Utils\renderHTML;
 
 /**
  * The cover page: static markup through the string renderer — no slots, no

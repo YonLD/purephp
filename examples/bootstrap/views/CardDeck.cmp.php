@@ -10,11 +10,11 @@ require_once __DIR__ . '/../app/services/PricingService.php';
 
 /**
  * The pricing card deck: it fetches the card records from the service and
- * renders its own children. `CardDeck()`.
+ * renders the cards into its own template. `CardDeck()`.
  */
-function CardDeck(mixed ...$children): Call
+function CardDeck(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

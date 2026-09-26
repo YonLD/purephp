@@ -10,9 +10,9 @@ require_once __DIR__ . '/Icon.cmp.php';
 /**
  * One "features with title" item: `FeatureTitle()->icon('bootstrap')->title(...)->content(...)`.
  */
-function FeatureTitle(mixed ...$children): Call
+function FeatureTitle(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

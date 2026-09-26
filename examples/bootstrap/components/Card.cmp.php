@@ -16,9 +16,9 @@ use function Pure\HTML\{button, div, h1, h4, li, small, ul};
  *         ->text('Sign up for free')
  *         ->class('btn btn-lg btn-block btn-outline-primary');
  */
-function Card(mixed ...$children): Call
+function Card(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

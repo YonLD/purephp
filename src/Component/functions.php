@@ -18,14 +18,23 @@ use ReflectionFunction;
  * and neither the name nor the file can drift apart; the unit file is the file
  * the call function lives in:
  *
- *     function Icon(mixed ...$children): Call
+ *     function Icon(): Call
  *     {
- *         return component(__FUNCTION__, ...$children);
+ *         return component(__FUNCTION__);
  *     }
  *
  *     register(Icon(...), static fn () => svg(
  *         svgUse()->href(Slot::value('href'))
  *     ));
+ *
+ * Only a unit whose template reads the children slot takes children: it declares
+ * them and forwards them to component(); every other unit leaves them out, so
+ * its call is a plain prop chain.
+ *
+ *     function Card(mixed ...$children): Call
+ *     {
+ *         return component(__FUNCTION__, ...$children);
+ *     }
  *
  * A unit may also register a `prepare` closure: the typed props-to-bindings
  * hook of its fluent call. The closure's parameters are the prop contract, so
@@ -78,11 +87,13 @@ function register(Closure $call, ?Closure $factory = null, bool $override = fals
  *
  * The call implements Pure\Core\Markup, so it nests like a tag:
  * `div(Card(...)->type('Free'))`. A prop named after a slot binds that slot;
- * children bind the reserved `children` slot, which the template reads with
- * `Slot::raw('children')`.
+ * children bind the reserved `children` slot, which a template reads with
+ * `Slot::raw('children')`, so the declaration follows the template: forwarding
+ * children to a template without that slot throws on render, and a call
+ * function that takes none drops them silently.
  *
  * Inside the unit's own call function the name carries no literal:
- * `return component(__FUNCTION__, ...$children);`.
+ * `return component(__FUNCTION__);`.
  *
  * @param string $name A registered component name or a template path.
  * @param mixed ...$children The children of the call, as tag children.

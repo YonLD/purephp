@@ -11,12 +11,12 @@ require_once __DIR__ . '/../app/services/FeaturesService.php';
 
 /**
  * The "features with title" section: it fetches the heading, the main column
- * and the feature records from the service and renders its own children.
- * `FeatureSection()`.
+ * and the feature records from the service and renders them into its own
+ * template. `FeatureSection()`.
  */
-function FeatureSection(mixed ...$children): Call
+function FeatureSection(): Call
 {
-    return component(__FUNCTION__, ...$children);
+    return component(__FUNCTION__);
 }
 
 /**

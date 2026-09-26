@@ -64,10 +64,11 @@ The recommended registration form is now:
 register(Card(...), factory: static fn () => div(...));
 ```
 
-The call function returns `component(__FUNCTION__, ...$children)`. This keeps the
-component name and its unit file in one place. Update older examples that passed
-a duplicated name literal, and use `override: true` only when an intentional
-replacement is required.
+The call function returns `component(__FUNCTION__)`, or
+`component(__FUNCTION__, ...$children)` when its template reads the `children`
+slot. This keeps the component name and its unit file in one place. Update older
+examples that passed a duplicated name literal, and use `override: true` only
+when an intentional replacement is required.
 
 ### Template builders are explicit
 
