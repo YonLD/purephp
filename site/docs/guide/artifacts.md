@@ -246,6 +246,38 @@ vendor/bin/pure check src
 Exit code 1 on errors, and on warnings with `--strict`. `pure check` does not
 look at artifacts — `pure compile --check` is the freshness check.
 
+### Reading the output
+
+Every finding is one `path:line: level: message` line, which is the form editors
+and CI annotation parsers expect. The line is the one that has to change: for a
+fluent call it is the `->prop(...)` setter, and a unit-level finding points at
+its file without a line.
+
+```text
+components/Page.cmp.php:21: error: component 'Card': the call binds 'titel', which the target does not accept (did you mean 'title'?)
+```
+
+The `checked N unit(s): E error(s), W warning(s)` summary accounts for the run,
+and appends `, X note(s)` when the run printed `info` findings — those never
+fail the command, but they do describe what could not be checked.
+
+Results and problems go to different streams. `ok:` lines, `info` notes and the
+`checked N unit(s)` summary are results and stay on stdout; errors, warnings,
+and the `missing:` / `stale:` reports of `pure compile --check` are problems and
+go to stderr. So `pure check . 2>/dev/null` leaves the results — which is not
+quite "only what passed", because the summary still reports the counts — and
+`pure check . 1>/dev/null` leaves the problems, including the warnings that a
+non-`--strict` run does not fail on. Gate on the exit code, and read the summary
+for the counts.
+
+The three exit codes are distinct, so a script can tell the cases apart:
+
+| Code | Meaning |
+| ---- | ------- |
+| `0` | Nothing to report, or nothing was stale under `--check` |
+| `1` | Errors, warnings under `--strict`, stale artifacts, or a file that could not be read |
+| `2` | The command line itself was wrong: an unknown command or option, or a missing path |
+
 ## Component Artifacts and Caching
 
 Every component is a `*.cmp.php` unit, so `pure compile` builds it like any

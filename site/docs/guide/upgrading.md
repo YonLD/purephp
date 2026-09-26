@@ -101,7 +101,10 @@ A release should be prepared from a reviewed commit with:
 - fresh `*.pure.php` and, when used, `*.plain.php` artifacts;
 - a smoke test of the examples and a cache rebuild when the cache version changes.
 
-The site does not publish a versioned `/vX/` copy until such a tag exists.
+The site does not publish a versioned `/vX/` copy yet, so a page reached from
+a search result may describe a release other than the one installed. Compare the
+`## [x.y.z]` heading in `CHANGELOG.md` with the version `composer show
+yonld/purephp` reports before following a page.
 
 ## Rollback
 

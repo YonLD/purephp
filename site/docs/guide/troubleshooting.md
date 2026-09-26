@@ -42,6 +42,26 @@ vendor/bin/pure --help
 The examples also use the root `vendor/autoload.php`; running a file from another
 working directory does not change that requirement.
 
+### `no *.shape.php or *.cmp.php files found in '...'`
+
+Both commands discover a unit by its file suffix, and nothing else: `*.cmp.php`
+for a component unit and `*.shape.php` for a lower-level template. Naming the
+file `Card.php` renders perfectly at runtime — the suffix is only how the
+compiler and the checker find it — so the project can look healthy until the
+first `pure compile`.
+
+Rename the file, or pass it by its real path so the error names the file:
+
+```bash
+mv components/Card.php components/Card.cmp.php
+vendor/bin/pure compile components
+```
+
+A file that exists but is named something else reports
+`'...' is not a *.shape.php or *.cmp.php file.` when it is passed directly. A
+directory that holds only the wrong suffixes reports the `no ... files found`
+message above; both are the same mistake seen from two sides.
+
 ## Slot and binding errors
 
 ### `MissingSlotException: slot '...' is required but was not provided`
@@ -95,9 +115,18 @@ register(Card(...),
 echo Card()->title('Welcome')->class('card');
 ```
 
-Without `prepare()`, the setter names themselves are the bindings. Run
-`vendor/bin/pure check components` after changing a unit to catch the mismatch
-at the source.
+Without `prepare()`, the setter names themselves are the bindings.
+
+Which of the two messages you get depends on what went wrong. An unknown
+setter is reported first, and it carries a `did you mean` for the prop it is one
+edit away from — so a typo in a required prop reads as
+`unknown prop 'titel' (did you mean 'title'?)` rather than as a `missing prop`,
+and every unknown prop in one call gets its own suggestion. `missing prop` then
+means the setter name was right and the value was never passed.
+
+Run `vendor/bin/pure check components` after changing a unit to catch the
+mismatch at the source; it reports the same contract with the line of the
+offending `->prop(...)`.
 
 ### Children disappear or the call says the template has no `children` slot
 

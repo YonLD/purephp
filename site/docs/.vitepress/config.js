@@ -29,6 +29,21 @@ export default {
       label: '简体中文',
       lang: 'zh-CN',
       themeConfig: {
+        // The shared themeConfig below carries the English chrome, so every
+        // label a reader sees on a zh page is overridden here. The outline
+        // title is `outlineTitle`, not `outlineLabel`.
+        outlineTitle: '本页目录',
+        darkModeSwitchLabel: '外观',
+        lightModeSwitchTitle: '切换到浅色模式',
+        darkModeSwitchTitle: '切换到深色模式',
+        sidebarMenuLabel: '菜单',
+        langMenuLabel: '切换语言',
+        returnToTopLabel: '回到顶部',
+        docFooter: { prev: '上一页', next: '下一页' },
+        footer: {
+          message: '基于 MIT 许可证发布',
+          copyright: '版权所有 © 2024 至今 PurePHP'
+        },
         nav: [
           { text: '首页', link: '/zh/' },
           { text: '指南', link: '/zh/guide/' },

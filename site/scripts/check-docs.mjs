@@ -412,7 +412,12 @@ function checkHeadings(page) {
   }
   if (h1Count !== 1) addError(`${page.rel}`, `expected exactly one H1 heading, found ${h1Count}`)
   const duplicateSlugs = page.headings.map((heading) => heading.baseAnchor).filter((anchor, index, all) => all.indexOf(anchor) !== index)
-  for (const anchor of new Set(duplicateSlugs)) addWarning(`${page.rel}`, `duplicate generated anchor #${anchor}`)
+  // Keep a Changelog repeats `### Added` / `### Changed` / `### Fixed` under
+  // every release, so the same anchor legitimately appears more than once and
+  // nothing links to it. Every other page must keep its anchors unique.
+  if (page.rel !== 'CHANGELOG.md') {
+    for (const anchor of new Set(duplicateSlugs)) addWarning(`${page.rel}`, `duplicate generated anchor #${anchor}`)
+  }
 }
 
 function checkExternalLink(page, link) {

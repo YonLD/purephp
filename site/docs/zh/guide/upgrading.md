@@ -29,7 +29,7 @@ composer test
 该 commit 前：
 
 1. 阅读 [CHANGELOG](https://github.com/YonLD/purephp/blob/main/CHANGELOG.md)
-   与下方的[当前未发布分支说明](#当前未发布分支说明)。
+   与下方的[迁移说明](#迁移说明)。
 2. 在库 checkout 中运行 `composer quality`。
 3. 对组件与 Shape 单元运行 `vendor/bin/pure check <paths>`。
 4. 重新生成严格产物与 plain 产物：
@@ -49,10 +49,9 @@ composer test
 不要手改 `*.pure.php` 或 `*.plain.php`。它们包含缓存版本或指纹契约，必须用匹配的
 编译器重新生成。
 
-## 当前未发布分支说明
+## 迁移说明
 
-当前 changelog 描述的是首个公开版本，而不是带 tag 的 release。升级时最需要留意的
-变化如下。
+从早期版本升级到 1.0.0 时，最需要注意的变化如下。
 
 ### 组件单元从调用函数派生名称
 
@@ -95,7 +94,9 @@ register(Card(...), factory: static fn () => div(...));
 - 新的 `*.pure.php`，以及使用时的 `*.plain.php`；
 - 示例 smoke test，以及缓存版本变化时的缓存重建。
 
-在真实 tag 出现前，站点不会发布 `/vX/` 版本副本。
+站点目前还不发布 `/vX/` 版本副本，因此从搜索结果进入的页面，可能描述的不是你
+实际安装的版本。请把 `CHANGELOG.md` 里的 `## [x.y.z]` 标题与
+`composer show yonld/purephp` 输出的版本对照之后再照着操作。
 
 ## 回滚
 

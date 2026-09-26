@@ -204,6 +204,34 @@ vendor/bin/pure check src
 有错误时退出码为 1，带 `--strict` 时警告也返回 1。`pure check` 不看产物——
 产物新鲜度由 `pure compile --check` 负责。
 
+### 如何阅读输出
+
+每条诊断都是一行 `path:line: level: message`，正是编辑器和 CI 注解解析器能识别的
+形式。行号指向真正需要改动的那一行：链式调用指向 `->prop(...)` 这个 setter，
+单元级诊断只指向文件、不带行号。
+
+```text
+components/Page.cmp.php:21: error: component 'Card': the call binds 'titel', which the target does not accept (did you mean 'title'?)
+```
+
+`checked N unit(s): E error(s), W warning(s)` 汇总与本次运行的结果对账；本次运行
+打印了 `info` 发现时，会追加 `, X note(s)`——这些提示不会让命令失败，但它们说明了
+哪些内容没能被检查。
+
+结果与问题走不同的流。`ok:` 行、`info` 提示和 `checked N unit(s)` 汇总属于结果，
+留在 stdout；错误、警告，以及 `pure compile --check` 的 `missing:` / `stale:`
+属于问题，写入 stderr。于是 `pure check . 2>/dev/null` 留下的是结果——并不完全等于
+"只留通过的部分"，因为汇总行仍会报出计数；`pure check . 1>/dev/null` 留下的是问题，
+其中包含非 `--strict` 下不会让命令失败的警告。请以退出码作为门禁，用汇总行读计数。
+
+三个退出码含义互不相同，脚本可以据此区分：
+
+| 退出码 | 含义 |
+| ------ | ---- |
+| `0` | 没有任何问题，或 `--check` 下没有过期产物 |
+| `1` | 有错误、`--strict` 下有警告、产物过期，或某个文件无法读取 |
+| `2` | 命令行本身写错了：未知命令、未知选项，或缺少路径 |
+
 ## 组件产物与缓存策略
 
 每个组件都是一个 `*.cmp.php` 单元，因此 `pure compile` 会像其他模板一样为它构建产物。绑定器会比较产物与单元文件的 mtime：产物较新就直接加载（不调用

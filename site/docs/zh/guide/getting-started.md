@@ -63,7 +63,8 @@ mkdir -p components public
 
 ### 2. 定义组件
 
-创建 `components/Card.cmp.php`：
+创建 `components/Card.cmp.php`。`.cmp.php` 后缀不是装饰：`pure compile` 和
+`pure check` 正是靠它发现单元，所以命名为 `Card.php` 的文件运行正常，编译器却会报告没有可编译的内容。
 
 ```php [components/Card.cmp.php]
 <?php

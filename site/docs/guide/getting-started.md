@@ -66,7 +66,9 @@ paths in the examples below assume that layout.
 
 ### 2. Define a component
 
-Create `components/Card.cmp.php`:
+Create `components/Card.cmp.php`. The `.cmp.php` suffix is not decoration: it is
+how `pure compile` and `pure check` find a unit, so a file named `Card.php`
+renders fine but the compiler reports that it found nothing to compile.
 
 ```php [components/Card.cmp.php]
 <?php

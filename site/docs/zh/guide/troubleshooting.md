@@ -39,6 +39,26 @@ vendor/bin/pure --help
 示例同样依赖根目录的 `vendor/autoload.php`；从其它工作目录启动文件不会改变
 这个要求。
 
+### `no *.shape.php or *.cmp.php files found in '...'`
+
+两个命令都只按文件后缀发现单元，此外没有任何别的规则：组件单元是 `*.cmp.php`，
+低层模板是 `*.shape.php`。把文件命名为 `Card.php` 在运行时完全正常——后缀只是
+编译器和检查器找到它的方式——所以项目在第一次 `pure compile` 之前看上去都是健康的。
+
+重命名文件，或者直接传真实路径，这样错误信息会指名文件：
+
+```bash
+mv components/Card.php components/Card.cmp.php
+vendor/bin/pure compile components
+```
+
+文件确实存在但后缀不对，直接传路径时会报下面这条；目录里只有错误的后缀时报上面
+那条 `no ... files found`。两者是同一个错误的两面。
+
+```text
+'...' is not a *.shape.php or *.cmp.php file.
+```
+
 ## Slot 与绑定错误
 
 ### `MissingSlotException: slot '...' is required but was not provided`
@@ -88,8 +108,15 @@ register(Card(...),
 echo Card()->title('Welcome')->class('card');
 ```
 
-没有 `prepare()` 时，setter 名称本身就是 bindings。修改单元后运行
-`vendor/bin/pure check components`，尽早发现不匹配。
+没有 `prepare()` 时，setter 名称本身就是 bindings。
+
+看到哪一条消息取决于错在哪。未知 setter 会先被报出，并附带一条针对"只差一次编辑"
+的那个 prop 的 `did you mean`——所以必填 prop 拼错时读到的是
+`unknown prop 'titel' (did you mean 'title'?)` 而不是 `missing prop`；同一次调用里的
+每个未知 prop 都有各自的建议。等到报 `missing prop` 时，setter 名称是对的，只是值没传。
+
+修改单元后运行 `vendor/bin/pure check components`，尽早发现不匹配：它报的是同一份
+契约，并带上出问题的那个 `->prop(...)` 所在行号。
 
 ### 子内容消失，或提示模板没有 `children` Slot
 
