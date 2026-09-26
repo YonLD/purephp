@@ -424,23 +424,44 @@ final class Call implements Markup
             }
         }
 
+        // The unknown props are reported first: a misspelled required prop also
+        // leaves that prop missing, and naming the typo the caller can see is
+        // more actionable than naming the gap the typo caused.
+        $unknown = array_values(array_diff(array_keys($props), array_keys($parameters)));
+
+        if ($unknown !== []) {
+            throw new InvalidArgumentException(self::unknownProps($name, $unknown, $parameters));
+        }
+
         if ($missing !== []) {
             throw new InvalidArgumentException("component '{$name}': missing prop " . self::list($missing) . '.');
         }
 
-        $unknown = array_values(array_diff(array_keys($props), array_keys($parameters)));
+        return self::invoke($prepare, $arguments, $name);
+    }
 
-        if ($unknown !== []) {
-            $nearest = Suggestion::nearest($unknown[0], array_keys($parameters));
-            $hint = $nearest === null ? '' : " (did you mean '{$nearest}'?)";
+    /**
+     * The unknown-prop error: every prop the call set that prepare() does not
+     * declare, each with a "did you mean" when it is one edit away from a
+     * parameter.
+     *
+     * @param string $name The component name or template path, for messages.
+     * @param list<string> $unknown The props prepare() does not declare.
+     * @param array<string, ReflectionParameter> $parameters The prepare() parameters.
+     * @return string The message.
+     */
+    private static function unknownProps(string $name, array $unknown, array $parameters): string
+    {
+        $accepted = array_keys($parameters);
+        $names = [];
 
-            throw new InvalidArgumentException(
-                "component '{$name}': unknown prop " . self::list($unknown) . $hint
-                . '; prepare() accepts ' . self::list(array_keys($parameters)) . '.'
-            );
+        foreach ($unknown as $prop) {
+            $nearest = Suggestion::nearest($prop, $accepted);
+            $names[] = $nearest === null ? "'{$prop}'" : "'{$prop}' (did you mean '{$nearest}'?)";
         }
 
-        return self::invoke($prepare, $arguments, $name);
+        return "component '{$name}': unknown prop " . implode(', ', $names)
+            . '; prepare() accepts ' . self::list($accepted) . '.';
     }
 
     /**

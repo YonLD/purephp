@@ -209,6 +209,35 @@ class CallTest extends TestCase
         }
     }
 
+    public function testAMisspelledRequiredPropNamesTheTypoRatherThanTheGap(): void
+    {
+        try {
+            component('FluentSection')->sectoin('columns')->item('x')->render();
+            $this->fail('Expected an unknown prop error.');
+        } catch (InvalidArgumentException $error) {
+            $this->assertSame(
+                "component 'FluentSection': unknown prop 'sectoin' (did you mean 'section'?); "
+                . "prepare() accepts 'section', 'class', 'item'.",
+                $error->getMessage()
+            );
+        }
+    }
+
+    public function testEveryUnknownPropIsListedWithItsOwnSuggestion(): void
+    {
+        try {
+            component('FluentSection')->sectoin('columns')->clas('row')->thing('x')->render();
+            $this->fail('Expected an unknown prop error.');
+        } catch (InvalidArgumentException $error) {
+            $this->assertSame(
+                "component 'FluentSection': unknown prop 'sectoin' (did you mean 'section'?), "
+                . "'clas' (did you mean 'class'?), 'thing'; "
+                . "prepare() accepts 'section', 'class', 'item'.",
+                $error->getMessage()
+            );
+        }
+    }
+
     public function testUnknownPropIsReportedByTheGuard(): void
     {
         Compile::guard(true);
