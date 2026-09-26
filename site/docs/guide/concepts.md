@@ -240,11 +240,16 @@ $user = Store::get('user');
 ## Conditional Lists
 
 The main table above covers the everyday slots. A list whose items need
-different markup is dispatched in the data layer: render each item through the
-call function that fits it and pass the joined markup into a raw slot.
+different markup is dispatched in the data layer: build each item's markup
+there and pass the joined result into a raw slot.
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
 
 function Blocks(array $blocks): string
 {
@@ -252,8 +257,12 @@ function Blocks(array $blocks): string
 
     foreach ($blocks as $block) {
         $html .= $block['kind'] === 'link'
-            ? LinkBlock($block['value'], $block['href'])
-            : TextBlock($block['value']);
+            ? sprintf(
+                '<a href="%s">%s</a>',
+                htmlspecialchars($block['href'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8')
+            )
+            : htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8');
     }
 
     return $html;

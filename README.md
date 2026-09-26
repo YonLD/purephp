@@ -1,27 +1,33 @@
-# Purephp
+# PurePHP
 
 [![Tests](https://github.com/YonLD/purephp/workflows/Tests/badge.svg)](https://github.com/YonLD/purephp/actions)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.1-blue.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Purephp is a PHP templating engine inspired by ReactJS functional components.
+PurePHP is a PHP templating engine inspired by ReactJS functional components.
 
 ## 📖 Documentation
 
 - **English**: [https://yonld.github.io/purephp/](https://yonld.github.io/purephp/)
 - **中文**: [https://yonld.github.io/purephp/zh/](https://yonld.github.io/purephp/zh/)
+- **Project pages**: [Troubleshooting](https://yonld.github.io/purephp/guide/troubleshooting),
+  [Upgrading & Releases](https://yonld.github.io/purephp/guide/upgrading), and
+  [Examples](https://yonld.github.io/purephp/guide/examples)
+- **中文维护页**: [故障排查](https://yonld.github.io/purephp/zh/guide/troubleshooting)、
+  [升级与发布](https://yonld.github.io/purephp/zh/guide/upgrading)、
+  [示例](https://yonld.github.io/purephp/zh/guide/examples)
 
 Start with the [Quick Start](https://yonld.github.io/purephp/guide/getting-started),
 then shapes and slots, and reach components last — a component is a wrapper
 around shapes.
 
-## Why use Purephp?
+## Why use PurePHP?
 
 To enjoy pure PHP programming.
 
 In traditional approaches, mixing HTML code, PHP code, and other template syntax in the view layer can be frustrating for developers.
 
-However, with Purephp:
+However, with PurePHP:
 + Everything is 100% native PHP code.
 + Encapsulate components to eliminate repetitive HTML code.
 + The syntax closely resembles HTML.
@@ -60,6 +66,10 @@ registered lazily so `pure compile` can precompile it:
 
 ```php [components/Card.cmp.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Pure\Component\Call;
 use Pure\Core\Slot;
@@ -109,6 +119,10 @@ The same unit, called fluently:
 
 ```php [components/Card.cmp.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Pure\Component\Call;
 use Pure\Core\Slot;
@@ -175,6 +189,10 @@ tree and render it immediately:
 ```php
 <?php
 
+declare(strict_types=1);
+
+require __DIR__ . '/vendor/autoload.php';
+
 use function Pure\HTML\a;
 use function Pure\HTML\div;
 
@@ -213,15 +231,20 @@ lower-level `*.shape.php` template) into a `*.pure.php` artifact that returns a
 ```bash
 vendor/bin/pure compile components            # *.pure.php: the compiled renderer
 vendor/bin/pure compile --plain components    # + *.plain.php: a dependency-free view
-vendor/bin/pure compile --list components     # name -> file (component|page)
+vendor/bin/pure compile --list components     # name -> file (component|shape|template)
 vendor/bin/pure check components              # slots vs. bindings vs. parameters
 ```
 
 ```php
 <?php
 
+declare(strict_types=1);
+
+require __DIR__ . '/vendor/autoload.php';
+
 use Pure\Core\HTML;
 
+$data = ['title' => 'Card Title'];
 $page = require __DIR__ . '/page.pure.php';
 
 echo $page->render(['title' => 'Card Title']);      // the view body
@@ -261,7 +284,8 @@ for the artifact contract, the freshness rules and the plain-view caveats.
 - the cover page is static markup through the string renderer
   (`views/cover.php`), so it has neither variant.
 
-Routes:
+Routes (the static [`/cover`](examples/bootstrap/public/index.php) page has no
+compiled or plain variant):
 
 ```
 /cover             the static cover page
@@ -281,9 +305,15 @@ php -S localhost:8000 -t examples/bootstrap/public \
 
 A request that matches nothing gets a 404 that lists every route.
 
-`event-counter` and `xml` follow the same layout — a `views/<page>.cmp.php`
-unit plus a `public/index.php` router for `/`, `/pure` and `/plain` — and `xml`
-adds `write.php`, the CLI entry that writes `example.xml`.
+For the other runnable examples, see the source directories directly:
+
+- [`examples/event-counter`](examples/event-counter) serves `/`, `/pure` and `/plain`
+  for the browser-side counter;
+- [`examples/xml`](examples/xml) serves `/`, `/pure` and `/plain`, and
+  [`write.php`](examples/xml/write.php) writes `example.xml` from the CLI.
+
+The complete route tables and startup commands are in the site
+[Examples](https://yonld.github.io/purephp/guide/examples#bootstrap-mvc-example) guide.
 
 Every artifact is byte-identical to its template, and every plain view to its
 artifact, preceded by the document header only when the view's root heads a
@@ -301,7 +331,10 @@ composer bench      # benchmarks
 ```
 
 The documentation site lives in `site/` (VitePress):
-`npm run docs:dev` to preview locally, `npm run docs:build` to build it
+`npm run docs:dev` to preview locally, `npm run docs:qa` to run source-only
+Markdown/link/anchor/parity checks and lint every complete PHP fence; set
+`DOCS_QA_STRICT=1` to fail on warnings, and use
+`npm run docs:build` to build it
 (this also regenerates `llms.txt` and verifies its links).
 
 ## License

@@ -1,6 +1,8 @@
 # SVG Class
 
-`Pure\Core\SVG` extends the XML class, specifically for SVG tags.
+`Pure\Core\SVG` extends `Pure\Core\XML` for SVG tags. It chooses self-closing
+rendering for selected childless elements, but it does not add an SVG namespace
+automatically.
 
 ## Creating SVG Elements
 
@@ -25,6 +27,31 @@ use Pure\Core\SVG;
 // Any tag name, including custom elements
 $custom = SVG::customShape(SVG::innerPath('M10,10 L90,90'));
 ```
+
+## Namespace and Document Roots
+
+SVG is normally an inline fragment, so `isDocumentRoot()` returns `false` and
+`render()` emits only the element. No `xmlns` attribute is inferred from the
+class name. Declare it yourself when writing a standalone SVG file:
+
+```php
+<?php
+
+use function Pure\SVG\{path, svg};
+
+$icon = svg(
+    path('M3 12l2-2m0 0l7-7 7 7')
+)->xmlns('http://www.w3.org/2000/svg')->viewBox('0 0 24 24');
+
+$icon->save('icon.svg');
+```
+
+`save()` and `documentHeader()` still provide the XML declaration for the SVG
+class; use an explicit header argument when a different document prologue is
+required. `renderXML()` also prepends that declaration, so use `render()` for
+an inline fragment. The namespace is a document concern, not an escaping
+concern, and should be fixed in the template rather than supplied by untrusted
+data.
 
 ## Self-Closing Tags
 
@@ -110,6 +137,8 @@ echo $shapes;
 
 ```php
 <?php
+
+use Pure\Core\SVG;
 
 use function Pure\SVG\{svg, path};
 

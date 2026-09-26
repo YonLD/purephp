@@ -1,6 +1,6 @@
 # 工具函数
 
-**前置**：[基本概念](/zh/guide/concepts)；**本页**：`clx()`、`sty()` 与 `renderHTML()` / `renderXML()`。
+**前置**：[核心概念](/zh/guide/concepts)；**本页**：`clx()`、`sty()` 与 `renderHTML()` / `renderXML()`。
 
 PurePHP 提供了一些实用的工具函数来简化开发：`clx()` 和 `sty()` 在设置元素属性时自动使用，
 `renderHTML()` / `renderXML()` 则为标签树或组件调用的渲染结果拼接文档声明。
@@ -85,7 +85,7 @@ div('Content')
 
 `sty` 函数用于将样式数组转换为 CSS 字符串。
 
-### 基本用法
+### 样式字符串用法
 
 ```php
 <?php

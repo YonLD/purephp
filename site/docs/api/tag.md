@@ -1,6 +1,6 @@
 # Tag Class
 
-`Pure\Core\Tag` is the base abstract class for all HTML and SVG tags.
+`Pure\Core\Tag` is the base abstract class for all HTML, XML and SVG tags.
 
 Tag trees serve two purposes:
 
@@ -16,7 +16,12 @@ The attribute and traversal methods below are shared by both paths.
 
 ### `class(array|bool|int|float|string|Slot|null ...$args): self`
 
-Sets the CSS class names of the element, with built-in `clx` function to handle multiple arguments. Booleans are ignored, which keeps conditional arguments working (`->class('btn', $isActive ? 'active' : null)`). Empty strings, `null` and empty arrays produce no `class` attribute.
+Sets the CSS class names of the element, with the built-in `clx` helper to handle
+multiple arguments. Booleans are ignored, which keeps conditional arguments
+working (`->class('btn', $isActive ? 'active' : null)`). Empty strings, `null`
+and empty arrays produce no `class` value. A later `class()` call with a
+non-empty value replaces the previous value; a later `false`/`null` result is
+ignored and does not remove an earlier class.
 
 ```php
 <?php
@@ -93,7 +98,14 @@ $element = div('Content')->setAttrs([
 Values must be scalar, `Stringable`, `Slot` or `null`; arrays raise an
 `InvalidArgumentException` (use `class()`/`style()` for them). Keys are
 normalized like the chained setters: `className` → `class`, `data_id` →
-`data-id`.
+`data-id`. A `null` or `false` value does not clear an attribute that was set
+earlier; it simply leaves the existing value untouched. Build the final value
+in one call when a later value must remove an attribute.
+
+For a boolean attribute, `true` stores the attribute name as its value and
+`false` omits it. The omission is a no-op when an earlier setter already
+stored the attribute: `input()->checked(true)->checked(false)` still renders
+`checked="checked"`.
 
 ## Getter Methods
 
@@ -267,17 +279,37 @@ use function Pure\HTML\{div, h1};
 div(h1('Report'))->save('report.html');
 ```
 
+### `documentHeader(): string`
+
+Returns the default header for the tag type: `<!DOCTYPE html>` for `HTML` and
+`<?xml version="1.0"?>` for `XML`/`SVG`. `render()` does not prepend it; `save()`
+uses it unless an explicit `$header` is supplied.
+
 ### `isDocumentRoot(): bool`
 
 Whether this tag heads a complete document, so a compiled plain view is preceded
 by its document header. An HTML tree is a document only when its root is
 `<html>`, and an XML tree always is; an SVG tree is a fragment (icons are
 inlined), whose standalone-file header stays available through
-`documentHeader()` / `save()`.
+`documentHeader()` / `save()`. SVG does not add `xmlns` automatically; declare
+it explicitly on a standalone root.
+
+## Escaping Boundary
+
+`render()` escapes text children and normal attribute values, but this is a
+syntax boundary rather than a complete web-security policy. It does not validate
+URL schemes (`href`/`src`), event-handler attributes, inline styles, or dynamic
+tag names, and `Raw`/`Markup` children are emitted verbatim. Validate active
+inputs, restrict custom tag names, and use a browser Content Security Policy
+when a page contains scripts or other active markup.
 
 ## Dynamic Attribute Methods
 
-The Tag class supports dynamically setting any HTML attribute through the `__call` magic method:
+The Tag class supports dynamically setting ordinary HTML attributes through the
+`__call` magic method. A name containing a namespace separator (for example
+`xlink:href` or `xmlns:soap`) is not a plain method name; set it with the
+dynamic call form `->{'xlink:href'}('...')`, or pass it as a key through
+`setAttrs()`.
 
 ```php
 <?php

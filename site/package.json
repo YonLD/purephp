@@ -6,7 +6,8 @@
   "scripts": {
     "docs:dev": "node scripts/generate-llms-txt.mjs && vitepress dev docs",
     "docs:build": "node scripts/generate-llms-txt.mjs && vitepress build docs && node scripts/publish-markdown.mjs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "docs:qa": "node scripts/check-docs.mjs"
   },
   "repository": {
     "type": "git",

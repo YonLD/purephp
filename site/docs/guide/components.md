@@ -7,10 +7,18 @@ A component wraps a shape: one file holds a PHP function that returns a
 props it accepts. The file registers a lazy factory, so `pure compile` can
 precompile the template while a request only loads the artifact.
 
+A unit file is a PHP source file: its imports and call function live in the same
+file. The examples below assume the application has loaded `vendor/autoload.php`
+in its front controller; the first one includes the autoloader and a CLI guard,
+so the same file can also run as a standalone smoke test, as in
+[Getting Started](/guide/getting-started).
+
 ## Your First Component
 
 ```php [components/Card.cmp.php]
 <?php
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 // the component unit: call function + template
 use Pure\Component\Call;
@@ -34,7 +42,9 @@ register(Card(...),
     }
 );
 
-echo Card()->title('Title')->content('Content');
+if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
+    echo Card()->title('Title')->content('Content');
+}
 ```
 
 - `register(Card(...))` derives the name and the file from the call function
@@ -46,7 +56,9 @@ echo Card()->title('Title')->content('Content');
   produced on string conversion.
 - Run `vendor/bin/pure compile components` to build `Card.pure.php` and (with
   `--plain`) `Card.plain.php` next to the unit. `pure compile --list` prints
-  every unit it finds.
+  `Card -> components/Card.cmp.php (component)` for this unit, `file (shape)`
+  for a standalone shape, and `name -> file (template)` for a `#[Template]`
+  builder.
 
 The registered name and the path of the unit file are interchangeable:
 `component(__DIR__ . '/Card.cmp.php')` resolves to the same binder, so a
@@ -129,9 +141,28 @@ echo div(
   it lazily with the tree, exactly like a tag child.
 - Props bind slot names, so the template reads them with `Slot::value()`,
   `Slot::each()` or `Slot::child()`. `class()` and `style()` join their
-  arguments exactly like the tag setters, and a `null` prop leaves the prop
-  unset (the slot then reports itself as not provided, or falls back to its
-  default).
+  arguments exactly like the tag setters. A `null` prop leaves the prop unset
+  (the slot then reports itself as not provided, or falls back to its default).
+  A later `null` does not clear a value set by an earlier setter; choose the
+  final value before setting it. A generic `Call` prop stores `false` as data,
+  so the template's Slot decides whether it becomes text or an attribute; the
+  special `class()` and `style()` setters keep their tag-style joining rules.
+- `Call::props(array $props): self` sets several named props at once. It is the
+  public batch form; do not instantiate `Call` directly because its constructor
+  is internal.
+For reference, the chainable public surface is:
+
+```php
+__call(string $prop, array $args): self
+class(array|bool|int|float|string|null ...$values): self
+style(string|array|null $value): self
+props(array $props): self
+```
+
+`props()` follows the same value rules as the setters: `null` leaves a prop
+unset and a `Slot` is rejected; use `class()` or `style()` when joining values
+needs their special behavior.
+
 - Children bind the reserved `children` slot: read it with
   `Slot::raw('children')`. A childless call renders it empty, and a call with
   children on a template that has no `children` slot throws.
@@ -185,15 +216,17 @@ the template instead of inferring them:
 
 use Pure\Component\Prop;
 
+use function Pure\HTML\div;
+
 register(Card(...),
-    factory: static fn () => div(...),
+    factory: static fn () => div(\Pure\Core\Slot::value('title')),
     prepare: static function (
         #[Prop(slot: 'title')] string $text,
         #[Prop(item: 'value')] array $features,
         #[Prop(required: false)] ?string $class = null,
         #[Prop(deprecated: 'use class()')] ?string $style = null,
     ): array {
-        return ['title' => $text, 'features' => ..., 'class' => $class, 'style' => $style];
+        return ['title' => $text, 'features' => $features, 'class' => $class, 'style' => $style];
     }
 );
 ```
@@ -214,6 +247,8 @@ verifies it binds a raw slot — markup bound to a text slot would be escaped �
 and the development guard warns when a call passes a value that is not
 `Pure\Core\Markup`, which is where untrusted input reaches the output:
 
+The hook is a fragment inside `register()` rather than a standalone file:
+
 ```php
 prepare: static function (#[Trusted] Markup $icon): array
 {
@@ -224,6 +259,8 @@ prepare: static function (#[Trusted] Markup $icon): array
 `#[Binds]` declares the keys of a `prepare()` that builds its bindings in steps
 or merges them from a service, so the required slots stay checked when the
 returned array cannot be read:
+
+The same applies to a dynamically assembled binding set:
 
 ```php
 prepare: #[Binds('title', 'desc')] static function (): array
@@ -244,10 +281,11 @@ Declarations are read by `pure check` and by the development guard; they are
 never consulted while rendering, and a unit without them behaves exactly as
 before.
 
-A component call costs about two microseconds more than rendering a compiled
-tree directly: the call object, the prop setters and the `prepare()` invocation.
-The compiled artifact and the plain view are unaffected, and the benchmark in
-`examples/bootstrap/bench.php` reports both paths.
+A component call adds the call object, prop setters and `prepare()` invocation
+to direct rendering of a compiled tree. See the
+[canonical performance snapshot](/guide/compiled#performance) and the
+[benchmark source](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
+for component and end-to-end measurements.
 
 ## Composing Components
 
@@ -257,16 +295,23 @@ caller passes the children to the call — exactly like a tag:
 ```php [components/Button.cmp.php]
 <?php
 
+use Pure\Component\Call;
+use Pure\Core\Raw;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\button as htmlButton;
+
 function Button(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
 }
 
 register(Button(...), static fn () =>
-    button(Slot::raw('icon'), Slot::value('label'), Slot::raw('children'))->class('btn')
+    htmlButton(Slot::raw('icon'), Slot::value('label'), Slot::raw('children'))->class('btn')
 );
 
-Button(Icon()->href('#plus'))->label('Add');
+Button(Raw::of('<span>+</span>'))->label('Add');
 ```
 
 Lists work the same way: build the list of child calls (or rendered strings) in
@@ -288,6 +333,14 @@ for `renderXML()`:
 ```php [views/features.cmp.php]
 <?php
 
+use Pure\Component\Binds;
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{body, head, html, title};
+use function Pure\Utils\renderHTML;
+
 function Features(mixed ...$children): Call
 {
     return component(__FUNCTION__, ...$children);
@@ -300,8 +353,7 @@ register(Features(...),
             body(Slot::raw('content'))
         ),
     prepare: #[Binds('title', 'content')] static fn (): array => [
-        // The page decides which blocks exist; each block fetches its own
-        // records.
+        // The page decides which blocks exist; each block fetches its own records.
         'title' => FeaturesService::pageTitle(),
         'content' => FeaturesBody(),
     ]
@@ -309,7 +361,6 @@ register(Features(...),
 
 function featuresPage(): string
 {
-    // The engine emits the tree as written; renderHTML() prepends the header.
     return renderHTML(component('Features'));
 }
 ```
@@ -322,14 +373,21 @@ header plus the rendered fragment.
 deployment without purephp can serve it; the controller prints the same
 bindings either way.
 
-## The Binder API
+## The Public Component Boundary
 
-`component()` is a convenience over the lower-level helpers:
+Use the named public helpers in application code:
 
 - `register(Card(...), $factory)` registers a unit; the name and file derive
   from the call function.
-- `Registry::component($nameOrPath)` returns the `Closure(array $data): string`
-  binder of a unit or shape file, to hold or pass around yourself.
+- `component(string $name, mixed ...$children): Call` starts a call for a
+  registered name or a `*.cmp.php` / `*.shape.php` path.
+- `Call::props(array $props): self` sets several named props at once.
+
+`Pure\Component\Registry` is class-level `@internal`. Its binder, cache and
+registration methods may be used by the implementation, but their signatures
+are not an application compatibility promise. If an advanced integration needs
+a lower-level binder, isolate it behind an adapter instead of making it part of
+an application contract.
 
 For an inline tree, compile it once and keep the shape:
 
@@ -350,23 +408,28 @@ function Tag(string $label): string
 }
 ```
 
-`Registry::component()` caches the binder per name or path, so you never need a
-`static` variable for a registered unit.
+The component path caches its internal binder per name or path, so a registered
+unit does not need a user-written `static` variable.
 
 ## Caching
 
 - A unit is served by its `*.pure.php` artifact when it is at least as new as
   the unit file; the factory and the shape tree are then never touched.
-- `Registry::component()` caches the binder per name or path for the compile
-  generation.
+- The internal component binder caches per name or path for the compile
+  generation; application code should use `component()` rather than depend on
+  `Registry` directly.
 - `Compile::cachePath($dir)` — requests load generated renderers instead of
   regenerating them.
 - `pure compile --check` keeps artifacts fresh in CI; a long-running worker
   keeps the loaded renderer in memory, so artifacts are optional there.
 
+A component call costs about two microseconds more than rendering a compiled
+tree directly: the call object, the prop setters and the `prepare()` invocation.
 With opcache, requiring the artifacts of a whole page costs about half a
-microsecond per component (see `bench/README.md`), so artifacts plus opcache are
-the production path.
+microsecond per component, so artifacts plus opcache are the production path.
+See the [canonical performance snapshot](/guide/compiled#performance) and the
+[benchmark source](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
+for the recorded comparison.
 
 ## Immediate Rendering (Snippets)
 
@@ -376,11 +439,23 @@ directly:
 ```php
 <?php
 
+use function Pure\HTML\{div, h2, p};
+
 div(h2('Title'), p('Content'))->class('card')->print();
 ```
 
 Use this for snippets and debugging only; production components should compile
 a template so escaping and structure costs are paid once.
+
+## Trusted Markup and CSP
+
+`#[Trusted]` and `Pure\Core\Markup` describe a trust boundary; they do not
+sanitize input. Pass only markup produced or reviewed by your application to a
+raw slot, validate URL schemes and event/style attributes, and restrict dynamic
+tag names. Configure a browser Content Security Policy for pages that include
+scripts or other active markup. Precompiled `*.pure.php` artifacts are
+executable PHP and should be built from trusted source with restricted write
+access.
 
 ## Slot Reference
 

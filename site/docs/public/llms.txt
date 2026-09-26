@@ -4,52 +4,60 @@
 
 ## Guide
 
-- [What is PurePHP?](https://yonld.github.io/purephp/guide/index.html.md): Prerequisites : none; On this page : the two rendering paths and the recommended learning order.
+- [What is PurePHP?](https://yonld.github.io/purephp/guide/index.html.md): A progressive introduction to PurePHP, from immediate tag trees to compiled components and production artifacts.
 - [Artifacts & Deployment](https://yonld.github.io/purephp/guide/artifacts.html.md): Prerequisites : Compiled Rendering, Components; On this page : pure compile artifacts, the pure check contract check, plain views and deployment caching.
 - [Basic Usage](https://yonld.github.io/purephp/guide/basic-usage.html.md): Prerequisites : Quick Start; On this page : the tag API — creating elements, setting attributes, immediate rendering.
 - [Compiled Rendering](https://yonld.github.io/purephp/guide/compiled.html.md): Prerequisites : Components; On this page : how a component's template compiles, the runtime cache and performance.
 - [Components](https://yonld.github.io/purephp/guide/components.html.md): Prerequisites : Props and Slots; On this page : wrapping shapes with components — call functions, templates and typed props.
 - [Core Concepts](https://yonld.github.io/purephp/guide/concepts.html.md): Prerequisites : Quick Start; On this page : tag trees, shapes, slots, components and data scope.
-- [Events](https://yonld.github.io/purephp/guide/events.html.md): Prerequisites : Basic Usage; On this page : event attributes and browser-side handlers.
-- [Quick Start](https://yonld.github.io/purephp/guide/getting-started.html.md): Prerequisites : none; On this page : install PurePHP and run your first component.
-- [PurePHP with HTMX](https://yonld.github.io/purephp/guide/htmx.html.md): Prerequisites : Components; On this page : dynamic interaction with HTMX, no client-side framework.
+- [Events](https://yonld.github.io/purephp/guide/events.html.md): Prerequisites : Basic Usage; On this page : accessible browser events, event delegation and CSP-safe listener setup.
+- [Examples](https://yonld.github.io/purephp/guide/examples.html.md): Run the PurePHP bootstrap, event-counter, and XML examples, including strict, plain, and cover routes.
+- [Quick Start](https://yonld.github.io/purephp/guide/getting-started.html.md): Prerequisites : PHP 8.1+, Composer; On this page : install PurePHP, run a component directly, and wire the same component into a real front controller.
+- [PurePHP with HTMX](https://yonld.github.io/purephp/guide/htmx.html.md): Prerequisites : Components; On this page : server-rendered fragments, routing, and safe state changes with HTMX.
 - [Props and Slots](https://yonld.github.io/purephp/guide/props.html.md): Prerequisites : Core Concepts; On this page : slot types, modifiers and the data-binding reference.
 - [SVG and XML Support](https://yonld.github.io/purephp/guide/svg-xml.html.md): Prerequisites : Basic Usage; On this page : building SVG graphics and XML documents, and compiling them for export.
-- [PurePHP with TailwindCSS Integration](https://yonld.github.io/purephp/guide/tailwindcss.html.md): Prerequisites : Components; On this page : combining Tailwind classes with PurePHP components.
+- [PurePHP with Tailwind CSS](https://yonld.github.io/purephp/guide/tailwindcss.html.md): Prerequisites : Components; On this page : a pinned Tailwind CSS v4 build and accessible component examples.
+- [Troubleshooting](https://yonld.github.io/purephp/guide/troubleshooting.html.md): Symptom-based fixes for installation, slots, components, artifacts, caching, and examples.
+- [Upgrading & Releases](https://yonld.github.io/purephp/guide/upgrading.html.md): Update guidance, compatibility checks, and deployment steps for PurePHP.
 - [Utility Functions](https://yonld.github.io/purephp/guide/utils.html.md): Prerequisites : Core Concepts; On this page : clx(), sty() and renderHTML() / renderXML().
 
 ## API Reference
 
-- [API Reference](https://yonld.github.io/purephp/api/index.html.md): This section provides comprehensive documentation for all PurePHP classes and their methods.
-- [Compiled Rendering](https://yonld.github.io/purephp/api/compile.html.md): Pure\Compile\Compile compiles a data-free shape tree into a flat PHP renderer.
+- [API Reference](https://yonld.github.io/purephp/api/index.html.md): This section documents the public rendering and component entry points.
+- [Compile API](https://yonld.github.io/purephp/api/compile.html.md): Pure\Compile\Compile compiles a data-free shape tree into a flat PHP renderer.
+- [Component API](https://yonld.github.io/purephp/api/component.html.md): Public PurePHP component helpers, Call behavior, registry boundaries, contract attributes, Template, and PHPStan integration.
 - [HTML Class](https://yonld.github.io/purephp/api/html.html.md): Pure\Core\HTML extends the Tag class, specifically for HTML tags.
-- [Raw Class](https://yonld.github.io/purephp/api/raw.html.md): Pure\Core\Raw represents trusted markup that is emitted verbatim instead of being escaped.
-- [SVG Class](https://yonld.github.io/purephp/api/svg.html.md): Pure\Core\SVG extends the XML class, specifically for SVG tags.
-- [Tag Class](https://yonld.github.io/purephp/api/tag.html.md): Pure\Core\Tag is the base abstract class for all HTML and SVG tags.
+- [Raw Class](https://yonld.github.io/purephp/api/raw.html.md): Pure\Core\Raw represents trusted markup that is emitted verbatim instead of being escaped. It is a trust boundary, not a sanitizer.
+- [SVG Class](https://yonld.github.io/purephp/api/svg.html.md): Pure\Core\SVG extends Pure\Core\XML for SVG tags. It chooses self-closing rendering for selected childless elements, but it does not add an SVG namespace automatically.
+- [Tag Class](https://yonld.github.io/purephp/api/tag.html.md): Pure\Core\Tag is the base abstract class for all HTML, XML and SVG tags.
 - [XML Class](https://yonld.github.io/purephp/api/xml.html.md): Pure\Core\XML extends the Tag class for creating XML elements.
 
 ## 中文指南 (Chinese Guide)
 
-- [什么是 PurePHP?](https://yonld.github.io/purephp/zh/guide/index.html.md): 前置 ：无； 本页 ：两条渲染路径总览与推荐学习顺序。
+- [什么是 PurePHP？](https://yonld.github.io/purephp/zh/guide/index.html.md): 从即时标签树到编译组件与生产产物的 PurePHP 渐进式入门路径。
 - [产物与部署](https://yonld.github.io/purephp/zh/guide/artifacts.html.md): 前置 ：编译渲染、组件； 本页 ：pure compile 产物、pure check 契约检查、无依赖视图与部署缓存。
 - [基础用法](https://yonld.github.io/purephp/zh/guide/basic-usage.html.md): 前置 ：快速开始； 本页 ：标签 API——创建元素、设置属性与即时渲染。
 - [编译渲染](https://yonld.github.io/purephp/zh/guide/compiled.html.md): 前置 ：组件； 本页 ：组件模板的编译、运行时缓存与性能。
 - [组件](https://yonld.github.io/purephp/zh/guide/components.html.md): 前置 ：Props 与 Slot； 本页 ：用 Component 包装 Shape——调用函数、模板与类型化 props。
-- [基本概念](https://yonld.github.io/purephp/zh/guide/concepts.html.md): 前置 ：快速开始； 本页 ：Tag 树、Shape、Slot、组件与数据作用域。
-- [事件](https://yonld.github.io/purephp/zh/guide/events.html.md): 前置 ：基本用法； 本页 ：事件属性与浏览器端处理器。
-- [快速开始](https://yonld.github.io/purephp/zh/guide/getting-started.html.md): 前置 ：无； 本页 ：安装 PurePHP，跑通第一个组件。
-- [PurePHP 与 HTMX 集成](https://yonld.github.io/purephp/zh/guide/htmx.html.md): 前置 ：组件； 本页 ：用 HTMX 做无 JavaScript 的动态交互。
-- [Props 与 Slot](https://yonld.github.io/purephp/zh/guide/props.html.md): 前置 ：基本概念； 本页 ：Slot 类型、修饰符与数据绑定参考。
+- [核心概念](https://yonld.github.io/purephp/zh/guide/concepts.html.md): 前置 ：快速开始； 本页 ：Tag 树、Shape、Slot、组件与数据作用域。
+- [事件](https://yonld.github.io/purephp/zh/guide/events.html.md): 前置 ：基本用法； 本页 ：无障碍浏览器事件、事件委托与符合 CSP 的监听器设置。
+- [示例](https://yonld.github.io/purephp/zh/guide/examples.html.md): 运行 PurePHP 的 bootstrap、event-counter 与 XML 示例，比较严格产物、plain 视图和静态 cover 路由。
+- [快速开始](https://yonld.github.io/purephp/zh/guide/getting-started.html.md): 前置 ：PHP 8.1+、Composer； 本页 ：安装 PurePHP，直接运行组件，并把同一组件接入真实应用入口。
+- [PurePHP 与 HTMX 集成](https://yonld.github.io/purephp/zh/guide/htmx.html.md): 前置 ：组件； 本页 ：用服务端 fragment、路由和安全状态变更实现 HTMX 交互。
+- [Props 与 Slot](https://yonld.github.io/purephp/zh/guide/props.html.md): 前置 ：核心概念； 本页 ：Slot 类型、修饰符与数据绑定参考。
 - [SVG 和 XML 支持](https://yonld.github.io/purephp/zh/guide/svg-xml.html.md): 前置 ：基本用法； 本页 ：SVG 图形与 XML 文档的构建和编译导出。
-- [PurePHP 与 TailwindCSS 集成](https://yonld.github.io/purephp/zh/guide/tailwindcss.html.md): 前置 ：组件； 本页 ：把 Tailwind 类与 PurePHP 组件结合。
-- [工具函数](https://yonld.github.io/purephp/zh/guide/utils.html.md): 前置 ：基本概念； 本页 ：clx()、sty() 与 renderHTML() / renderXML()。
+- [PurePHP 与 Tailwind CSS 集成](https://yonld.github.io/purephp/zh/guide/tailwindcss.html.md): 前置 ：组件； 本页 ：锁定 Tailwind CSS v4 版本并编写可访问的组件示例。
+- [故障排查](https://yonld.github.io/purephp/zh/guide/troubleshooting.html.md): 按症状排查安装、Slot、组件、产物、缓存和示例问题。
+- [升级与发布](https://yonld.github.io/purephp/zh/guide/upgrading.html.md): PurePHP 的更新步骤、兼容性检查与部署说明。
+- [工具函数](https://yonld.github.io/purephp/zh/guide/utils.html.md): 前置 ：核心概念； 本页 ：clx()、sty() 与 renderHTML() / renderXML()。
 
 ## 中文 API 参考 (Chinese API Reference)
 
-- [API 参考](https://yonld.github.io/purephp/zh/api/index.html.md): 本节为所有 PurePHP 类及其方法提供全面的文档。
+- [API 参考](https://yonld.github.io/purephp/zh/api/index.html.md): 本节介绍公共渲染与组件入口。它是概览，不承诺每个内部辅助函数都是稳定 API；请阅读各页的 边界说明，并查看 Component API 了解组件接口。
 - [Compile API](https://yonld.github.io/purephp/zh/api/compile.html.md): Pure\Compile\Compile 把一棵不含数据的 Shape 树编译成扁平的 PHP 渲染器。 静态标记在编译期一次性转义，并作为字面量字符串块输出，因此渲染一个页面只比字符串拼接加上动态值转义略多一点开销。
+- [组件 API](https://yonld.github.io/purephp/zh/api/component.html.md): PurePHP 组件公共入口、Call 行为、Registry 边界、契约属性、Template 与 PHPStan 集成。
 - [HTML 类](https://yonld.github.io/purephp/zh/api/html.html.md): Pure\Core\HTML 继承自 Tag 类，专门用于 HTML 标签。
-- [Raw 类](https://yonld.github.io/purephp/zh/api/raw.html.md): Pure\Core\Raw 表示可信标记，会按原样输出，不会被转义。
-- [SVG 类](https://yonld.github.io/purephp/zh/api/svg.html.md): Pure\Core\SVG 继承自 XML 类，专门用于 SVG 标签。
-- [Tag 类](https://yonld.github.io/purephp/zh/api/tag.html.md): Pure\Core\Tag 是所有 HTML 和 SVG 标签的基础抽象类。
+- [Raw 类](https://yonld.github.io/purephp/zh/api/raw.html.md): Pure\Core\Raw 表示可信标记，会按原样输出，不会被转义。它是信任边界，不是清理器。
+- [SVG 类](https://yonld.github.io/purephp/zh/api/svg.html.md): Pure\Core\SVG 继承 Pure\Core\XML，用于 SVG 标签。它会为选定的无子节点元素 选择自闭合渲染风格，但不会自动添加 SVG 命名空间。
+- [Tag 类](https://yonld.github.io/purephp/zh/api/tag.html.md): Pure\Core\Tag 是所有 HTML、XML 和 SVG 标签的基础抽象类。
 - [XML 类](https://yonld.github.io/purephp/zh/api/xml.html.md): Pure\Core\XML 继承自 Tag 类，用于创建 XML 元素。

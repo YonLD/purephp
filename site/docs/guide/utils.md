@@ -92,7 +92,7 @@ you need the merged string on its own.
 
 The `sty` function converts style arrays to CSS strings.
 
-### Basic Usage
+### Style String Usage
 
 ```php
 <?php

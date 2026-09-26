@@ -127,9 +127,22 @@ jobs:
         cache: npm
         cache-dependency-path: site/package-lock.json
 
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        coverage: none
+
     - name: Install dependencies
       run: npm ci
       working-directory: site
+
+    - name: Check documentation quality
+      run: npm run docs:qa
+      working-directory: site
+      env:
+        DOCS_QA_REQUIRE_PHP: '1'
+        DOCS_QA_STRICT: '1'
 
     - name: Build docs (VitePress + llms.txt link check)
       run: npm run docs:build

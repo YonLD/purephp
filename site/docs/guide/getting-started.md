@@ -1,12 +1,11 @@
 # Quick Start
 
-**Prerequisites**: none; **On this page**: install PurePHP and run your first component.
+**Prerequisites**: PHP 8.1+, Composer; **On this page**: install PurePHP, run a component directly, and wire the same component into a real front controller.
 
-This guide helps you install PurePHP and create your first application: a
-**component** — one file with a call function and a data-free template whose
-dynamic values are **Slot** placeholders, typed through a `prepare()` hook.
-Everything data-driven in PurePHP is built this way; snippets can also render
-tag trees immediately, as shown in the installation check below.
+This guide takes the smallest useful path through PurePHP: install the package,
+render a tag tree once, then define a typed component and use it from an application
+entry point. A component is a callable unit with a data-free template; `Slot`
+placeholders receive the values supplied by its typed `prepare()` hook.
 
 ## Requirements
 
@@ -15,20 +14,22 @@ tag trees immediately, as shown in the installation check below.
 
 ## Installation
 
-### Using Composer
+### Install the package
 
-Run the following command in your project directory:
+Run this in the root of your project:
 
 ```bash
 composer require yonld/purephp
 ```
 
-### Verify Installation
+### Verify the installation
 
-Create a simple test file `test.php`:
+Create `test.php` in that project root:
 
 ```php [test.php]
 <?php
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -36,38 +37,43 @@ use function Pure\HTML\{div, h1, p};
 
 div(
     h1('PurePHP Installation Successful'),
-    p('Congratulations! PurePHP is correctly installed.')
+    p('The package and Composer autoloader are working.')
 )->print();
 ```
 
-Run the test file:
+Run it:
 
 ```bash
 php test.php
 ```
 
-If you see HTML output, the installation was successful. Note that this uses
-immediate rendering — the right tool for a quick check; the application below
-renders as a component.
+The output is an HTML fragment. This immediate-rendering API is useful for a
+first check; the application below uses a component and a front controller.
 
-## Create Your First Application
+## Create the first application
 
-### 1. Create the Project Directory
+### 1. Create the project
 
 ```bash
 mkdir my-purephp-app
 cd my-purephp-app
 composer require yonld/purephp
+mkdir -p components public
 ```
 
-### 2. Create Your First Component
+Keep `composer.json`, `vendor/`, `components/`, and `public/` in this layout. The
+paths in the examples below assume that layout.
 
-Create `components/Card.cmp.php`. The template is a data-free tree: dynamic
-values are `Slot` placeholders, bound by the typed props of the `prepare()`
-hook:
+### 2. Define a component
+
+Create `components/Card.cmp.php`:
 
 ```php [components/Card.cmp.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Pure\Component\Call;
 use Pure\Core\Slot;
@@ -80,61 +86,97 @@ function Card(mixed ...$children): Call
     return component(__FUNCTION__, ...$children);
 }
 
-register(Card(...),
+register(
+    Card(...),
     factory: static fn () => div(
         h2(Slot::value('title')),
         p(Slot::value('content'))
     )->class('card'),
-    prepare: static function (string $title, string $content): array {
-        return ['title' => $title, 'content' => $content];
-    }
+    prepare: static fn (string $title, string $content): array => [
+        'title' => $title,
+        'content' => $content,
+    ],
 );
 
-echo Card()->title('Title')->content('Content');
+if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
+    echo Card()->title('Title')->content('Content');
+}
 ```
 
-- `Slot::value('title')` is a placeholder: at render time the value comes from
-  the prop of the same name and is escaped into that position;
-- `register(Card(...))` derives the name and the file from the call function
-  and stores the factory lazily — it builds nothing;
-- `prepare()` is the typed prop contract: PHP enforces the parameter types,
-  and the array it returns binds the template.
+`Slot::value()` marks a text position. The `prepare()` parameters are the typed
+props accepted by the fluent call, and the returned array binds the template.
+The file is safe to `require` from an application: the small CLI guard runs only
+when this file itself is executed, so a direct smoke test and a front controller
+can share the same unit.
 
-### 3. Run the Application
+### 3. Run the component directly
+
+Run the unit as a standalone script:
 
 ```bash
 php components/Card.cmp.php
 ```
 
-Output:
+Expected output:
 
 ```html
 <div class="card"><h2>Title</h2><p>Content</p></div>
 ```
 
-In a real application the unit sits in its own file, the controller `require`s
-it and calls the component with request data — see
-[Components](/guide/components).
+This is a component smoke test, not a complete HTML document. It proves that the
+autoloader, registration, prop contract, and renderer work together.
 
-### 4. Next: Toward Production
+### 4. Add a real application entry
 
-The snippet above rebuilds the template on every run — fine for learning.
-Production needs three more things:
+Create `public/index.php`:
 
-- **Disk cache and precompiled artifacts** — `Compile::cachePath()` and
-  `pure compile`, see [Artifacts & Deployment](/guide/artifacts);
-- **The development guard** — reports per-request rebuilds, misspelled
-  bindings and similar problems, see [Caching](/guide/compiled#caching);
-- **Static contract checking** — `pure check` validates props against slots
-  in CI, see [Contract Check](/guide/artifacts#contract-check).
+```php [public/index.php]
+<?php
 
-## Next Steps
+declare(strict_types=1);
 
-In order:
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../components/Card.cmp.php';
 
-- [Basic Usage](/guide/basic-usage) - The tag API for snippets, prototypes and debugging
-- [Core Concepts](/guide/concepts) - Tag trees, shapes, slots and components
-- [Props and Slots](/guide/props) - Slot types and the data-binding reference
-- [Components](/guide/components) - Composition, prop contracts and pages
-- [Compiled Rendering](/guide/compiled) - How a component's template compiles
-- [Artifacts & Deployment](/guide/artifacts) - `pure compile` artifacts and production deployment
+use function Pure\HTML\{body, head, html, meta, title};
+use function Pure\Utils\renderHTML;
+
+$title = is_string($_GET['title'] ?? null) ? trim($_GET['title']) : 'Title';
+$content = is_string($_GET['content'] ?? null) ? trim($_GET['content']) : 'Content';
+
+echo renderHTML(
+    html(
+        head(
+            meta()->charset('utf-8'),
+            title('Card')
+        ),
+        body(Card()->title($title)->content($content))
+    )
+);
+```
+
+The entry point supplies request data, calls the component, and adds the document
+shell. Start PHP's development server from the project root:
+
+```bash
+php -S 127.0.0.1:8000 -t public public/index.php
+```
+
+Open `http://127.0.0.1:8000/?title=Hello&content=From+the+entry+point`.
+The component is still the same unit; only the caller and document wrapper are
+different.
+
+## Next steps
+
+Follow the path in this order:
+
+1. [Basic Usage](/guide/basic-usage) — learn the tag API and fragment rendering.
+2. [Core Concepts](/guide/concepts) — understand tag trees, shapes, slots, and components.
+3. [Components](/guide/components) — compose units and define page-level prop contracts.
+4. [HTMX](/guide/htmx) — return HTML fragments for server-driven interactions.
+5. [Tailwind CSS](/guide/tailwindcss) — style the same components with a pinned CSS build.
+6. [Compiled Rendering](/guide/compiled) and [Artifacts & Deployment](/guide/artifacts) — add caching, artifacts, and CI checks.
+
+For production, keep the front controller thin, validate request data at its
+boundary, and use `pure check` plus the deployment steps in
+[Artifacts & Deployment](/guide/artifacts#contract-check).

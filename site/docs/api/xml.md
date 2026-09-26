@@ -46,6 +46,13 @@ if ($result !== false) {
 }
 ```
 
+## Document Header
+
+### `documentHeader(): string`
+
+Returns the default XML declaration, `<?xml version="1.0"?>`. `save()` uses it
+unless an explicit header is supplied; `render()` never adds a header.
+
 ## Examples
 
 ### Configuration Files
@@ -86,29 +93,27 @@ use Pure\Core\XML;
 function exportUsers(array $users): XML
 {
     $userElements = [];
-    
+
     foreach ($users as $userData) {
         $addressElements = [];
-        if (!empty($userData['addresses'])) {
-            foreach ($userData['addresses'] as $addr) {
-                $addressElements[] = XML::address(
-                    XML::street($addr['street']),
-                    XML::city($addr['city']),
-                    XML::state($addr['state']),
-                    XML::zip($addr['zip'])
-                )->type($addr['type']);
-            }
+        foreach ($userData['addresses'] ?? [] as $address) {
+            $addressElements[] = XML::address(
+                XML::street($address['street']),
+                XML::city($address['city']),
+                XML::state($address['state']),
+                XML::zip($address['zip'])
+            )->type($address['type']);
         }
-        
+
         $userElements[] = XML::user(
             XML::name($userData['name']),
             XML::email($userData['email']),
             XML::role($userData['role']),
             XML::created($userData['created_at']),
-            !empty($addressElements) ? XML::addresses(...$addressElements) : null
+            $addressElements === [] ? null : XML::addresses(...$addressElements)
         )->id($userData['id']);
     }
-    
+
     return XML::users(...$userElements);
 }
 
@@ -169,13 +174,17 @@ $posts = [
         'title' => 'First Post',
         'url' => 'https://myblog.com/first-post',
         'description' => 'This is my first blog post',
-        'date' => '2024-01-01 12:00:00'
+        'date' => 'Mon, 01 Jan 2024 12:00:00 +0000'
     ]
 ];
 
 $rss = createRSSFeed($posts);
 $rss->save('feed.xml');
 ```
+
+RSS `pubDate` values must be RFC 2822 dates, as in the example. The XML
+builder escapes element text and attribute values, but it does not validate a
+feed against the RSS schema.
 
 ### SOAP Envelope
 
@@ -184,22 +193,28 @@ $rss->save('feed.xml');
 
 use Pure\Core\XML;
 
-$soapEnvelope = XML::envelope(
-    XML::header(
-        XML::authentication(
+$soapNamespace = 'http://schemas.xmlsoap.org/soap/envelope/';
+$soapEnvelope = XML::{'soap:Envelope'}(
+    XML::{'soap:Header'}(
+        XML::{'soap:Authentication'}(
             XML::username('user'),
             XML::password('pass')
         )
     ),
-    XML::body(
-        XML::getUserRequest(
+    XML::{'soap:Body'}(
+        XML::{'soap:GetUserRequest'}(
             XML::userId('123')
         )
     )
-)->xmlns_soap('http://schemas.xmlsoap.org/soap/envelope/');
+)->setAttrs(['xmlns:soap' => $soapNamespace]);
 
 echo $soapEnvelope;
 ```
+
+A method name cannot contain a colon, so the example uses PHP's dynamic static
+method syntax for the prefixed element names. `setAttrs()` is public and keeps
+the `xmlns:soap` spelling; `->xmlns_soap(...)` would normalize the underscore to
+`xmlns-soap` and is not a SOAP namespace.
 
 ### Large Documents
 

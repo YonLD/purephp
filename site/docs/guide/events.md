@@ -1,94 +1,119 @@
 # Events
 
-**Prerequisites**: [Basic Usage](/guide/basic-usage); **On this page**: event attributes and browser-side handlers.
+**Prerequisites**: [Basic Usage](/guide/basic-usage); **On this page**: accessible browser events, event delegation and CSP-safe listener setup.
 
-This guide explains how to handle events in PurePHP components.
+PurePHP renders HTML; browser JavaScript handles interaction. Emit semantic controls and accessible status regions from PHP, then attach behavior with `addEventListener` in JavaScript.
 
-::: tip Event attributes are part of the tag API
-Event attributes such as `->onclick(...)` are part of the tag API and stay
-valid; they are static attributes, so they are set the same way on shapes. For
-pages, build shapes and compile them — see
-[Compiled Rendering](/guide/compiled). Most examples below use the tag API,
-which remains the immediate rendering path for snippets and debugging.
+::: tip Prefer external listeners
+`->onclick(...)`, `->oninput(...)` and similar tag methods are valid: they write inline `onclick` or `oninput` attributes. A Content Security Policy that omits `'unsafe-inline'` blocks those handlers. The examples therefore keep behavior out of element attributes and use `addEventListener` instead.
 :::
 
 ## Basic Event Handling
 
-PurePHP supports all standard HTML events through attribute methods. Event handlers are typically JavaScript functions passed as strings:
+Save this as `events.php` in a project that has already installed PurePHP, then run `php events.php`:
 
 ```php
 <?php
 
-use function Pure\HTML\{div, button, input};
+declare(strict_types=1);
 
-function BasicEvents()
-{
-    return div(
-        button('Click me')
-            ->onclick('handleClick()')
-            ->class('btn'),
-        input()
-            ->type('text')
-            ->oninput('handleInput(event)')
-            ->placeholder('Type something...')
-            ->class('input')
-    )->class('events-container');
-}
-BasicEvents()->print();
+require __DIR__ . '/vendor/autoload.php';
+
+use function Pure\HTML\{button, div, input, label, output, p};
+
+echo div(
+    label('Message')->for('event-message'),
+    input()
+        ->id('event-message')
+        ->name('message')
+        ->aria_describedby('event-help'),
+    p('The status is announced after either control changes.')->id('event-help'),
+    button('Show message')->type('button')->id('event-trigger'),
+    output('Ready.')->id('event-status')->aria_live('polite')
+)->class('events-container');
+?>
+<script>
+const eventTrigger = document.getElementById('event-trigger');
+const eventInput = document.getElementById('event-message');
+const eventStatus = document.getElementById('event-status');
+
+eventTrigger.addEventListener('click', () => {
+    eventStatus.textContent = 'Message button activated.';
+});
+
+eventInput.addEventListener('input', event => {
+    eventStatus.textContent = `Current message: ${event.target.value || '(empty)'}`;
+});
+</script>
 ```
+
+The input has a real `<label>`, the action is a semantic `<button type="button">`, and the `<output aria-live="polite">` announces updates without moving keyboard focus.
 
 ## Mouse Events
 
-Handle various mouse interactions:
+Use a button for an action and expose the result through a live region:
 
 ```php
 <?php
 
-use function Pure\HTML\div;
+use function Pure\HTML\{button, div, output};
 
-function MouseEvents()
-{
-    return div('Hover and click me!')
-        ->onclick('console.log("Clicked!")')
-        ->onmouseover('this.style.backgroundColor = "#f0f0f0"')
-        ->onmouseout('this.style.backgroundColor = ""')
-        ->onmousedown('this.style.transform = "scale(0.95)"')
-        ->onmouseup('this.style.transform = "scale(1)"')
-        ->style('padding: 20px; border: 1px solid #ccc; cursor: pointer; transition: all 0.2s;')
-        ->class('mouse-events');
-}
-MouseEvents()->print();
+echo div(
+    button('Hover and click me')->type('button')->id('mouse-button'),
+    output('Waiting for an event.')->id('mouse-status')->aria_live('polite')
+)->class('mouse-events');
+?>
+<script>
+const mouseButton = document.getElementById('mouse-button');
+const mouseStatus = document.getElementById('mouse-status');
+
+mouseButton.addEventListener('click', () => {
+    mouseStatus.textContent = 'Clicked';
+    mouseButton.style.backgroundColor = '#f0f0f0';
+});
+
+mouseButton.addEventListener('mouseover', () => {
+    mouseButton.style.backgroundColor = '#e0e0e0';
+});
+
+mouseButton.addEventListener('mouseout', () => {
+    mouseButton.style.backgroundColor = '';
+});
+
+mouseButton.addEventListener('mousedown', () => {
+    mouseButton.style.transform = 'scale(0.95)';
+});
+
+mouseButton.addEventListener('mouseup', () => {
+    mouseButton.style.transform = 'scale(1)';
+});
+</script>
 ```
 
 ## Keyboard Events
 
-Handle keyboard input:
+Keep the visible label, describe the live output and listen for keyboard input:
 
 ```php
 <?php
 
-use function Pure\HTML\{div, input, p};
+use function Pure\HTML\{div, input, label, output};
 
-function KeyboardEvents()
-{
-    return div(
-        p('Type in the input below:'),
-        input()
-            ->type('text')
-            ->onkeydown('handleKeyDown(event)')
-            ->onkeyup('handleKeyUp(event)')
-            ->oninput('handleInput(event)')
-            ->placeholder('Press keys...')
-            ->class('keyboard-input'),
-        p()->id('key-display')->style('margin-top: 10px; font-family: monospace;')
-    )->class('keyboard-events');
-}
-echo KeyboardEvents();
+echo div(
+    label('Keyboard input')->for('keyboard-input'),
+    input()
+        ->id('keyboard-input')
+        ->type('text')
+        ->aria_describedby('key-display'),
+    output('Focus the input and press a key.')->id('key-display')->aria_live('polite')
+)->class('keyboard-events');
 ?>
 <script>
+const keyboardInput = document.getElementById('keyboard-input');
+const keyDisplay = document.getElementById('key-display');
+
 function handleKeyDown(event) {
-    document.getElementById('key-display').textContent =
-        `Key pressed: ${event.key} (Code: ${event.code})`;
+    keyDisplay.textContent = `Key pressed: ${event.key} (Code: ${event.code})`;
 }
 
 function handleKeyUp(event) {
@@ -98,113 +123,98 @@ function handleKeyUp(event) {
 function handleInput(event) {
     console.log('Input value:', event.target.value);
 }
+
+keyboardInput.addEventListener('keydown', handleKeyDown);
+keyboardInput.addEventListener('keyup', handleKeyUp);
+keyboardInput.addEventListener('input', handleInput);
 </script>
 ```
 
 ## Form Events
 
-Handle form interactions:
+Associate every control with a label and announce validation or submission state:
 
 ```php
 <?php
 
-use function Pure\HTML\{form, div, label, input, button, p};
+use function Pure\HTML\{button, div, form, input, label, output};
 
-function FormEvents()
-{
-    return div(
-        form(
-            div(
-                label('Username:')->for('username'),
-                input()
-                    ->type('text')
-                    ->id('username')
-                    ->name('username')
-                    ->onchange('handleChange(event)')
-                    ->required(true)
-            )->class('form-group'),
-            div(
-                label('Email:')->for('email'),
-                input()
-                    ->type('email')
-                    ->id('email')
-                    ->name('email')
-                    ->onchange('handleChange(event)')
-                    ->required(true)
-            )->class('form-group'),
-            button('Submit')
-                ->type('submit')
-                ->class('submit-btn')
-        )
-        ->onsubmit('handleFormSubmit(event)')
-        ->class('event-form'),
-        p()->id('form-status')->style('margin-top: 10px; color: #666;')
-    )->class('form-events');
-}
-echo FormEvents();
+echo div(
+    form(
+        div(
+            label('Username')->for('username'),
+            input()->id('username')->name('username')->required(true)
+        ),
+        div(
+            label('Email')->for('email'),
+            input()->id('email')->name('email')->type('email')->required(true)
+        ),
+        button('Submit')->type('submit')
+    )
+        ->id('event-form')
+        ->aria_describedby('form-status'),
+    output('The form has not been submitted.')->id('form-status')->aria_live('polite')
+)->class('form-events');
 ?>
 <script>
-function handleChange(event) {
+const eventForm = document.getElementById('event-form');
+const formStatus = document.getElementById('form-status');
+
+eventForm.addEventListener('change', event => {
     console.log(`${event.target.name} changed to: ${event.target.value}`);
-}
+});
 
-function handleFormSubmit(event) {
-    event.preventDefault(); // Prevent actual form submission
-    const formData = new FormData(event.target);
-    const data = Object.fromEntries(formData);
-
-    document.getElementById('form-status').textContent =
-        `Form submitted with: ${JSON.stringify(data)}`;
-
-    console.log('Form data:', data);
-}
+eventForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target));
+    formStatus.textContent = `Form submitted with: ${JSON.stringify(data)}`;
+});
 </script>
 ```
 
 ## Event Delegation
 
-Handle events efficiently using event delegation:
+One listener can handle a group of related buttons. The buttons remain independently keyboard-operable:
 
 ```php
 <?php
 
-use function Pure\HTML\{div, button};
+use function Pure\HTML\{button, div, output};
 
-function EventDelegation()
-{
-    $buttons = [];
-    for ($i = 1; $i <= 5; $i++) {
-        $buttons[] = button("Button {$i}")
-            ->data_id($i)
-            ->class('delegated-btn');
-    }
-
-    return div(
-        div('Click any button:')->style('margin-bottom: 10px;'),
-        div(...$buttons)->class('button-group'),
-        div()->id('delegation-output')->style('margin-top: 10px; color: #666;')
-    )
-    ->onclick('handleDelegatedClick(event)')
-    ->class('delegation-container');
+$buttons = [];
+for ($i = 1; $i <= 5; $i++) {
+    $buttons[] = button("Button {$i}")
+        ->type('button')
+        ->data_id($i)
+        ->class('delegated-btn');
 }
-echo EventDelegation();
+
+echo div(
+    div(...$buttons)->role('group')->aria_label('Delegated buttons'),
+    output('Click a button.')->id('delegation-output')->aria_live('polite')
+)
+    ->id('delegation-container')
+    ->class('delegation-container');
 ?>
 <script>
-function handleDelegatedClick(event) {
-    if (event.target.classList.contains('delegated-btn')) {
-        const buttonId = event.target.dataset.id;
-        document.getElementById('delegation-output').textContent =
-            `Clicked button ${buttonId}`;
-        console.log('Clicked button:', buttonId);
+const delegationContainer = document.getElementById('delegation-container');
+const delegationOutput = document.getElementById('delegation-output');
+
+delegationContainer.addEventListener('click', event => {
+    const selectedButton = event.target.closest('.delegated-btn');
+
+    if (selectedButton && delegationContainer.contains(selectedButton)) {
+        delegationOutput.textContent = `Clicked button ${selectedButton.dataset.id}`;
     }
-}
+});
 </script>
 ```
 
-## Component Event Communication
+Use `event.currentTarget` when the listener is attached to the element you actually intend to read. `event.target` can be a descendant and is useful for delegation.
 
-Pass event handlers to child components as static event attributes; dynamic
-values flow through slots:
+## Shape Event Communication
+
+A compiled shape can place trusted display data in attributes while JavaScript keeps the handler external:
 
 ```php
 <?php
@@ -212,153 +222,114 @@ values flow through slots:
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
 
-use function Pure\HTML\{div, button, p};
+use function Pure\HTML\{button, div, output, p};
 
-function Child(string $message): string
+function ChildShape(string $message): string
 {
     static $render;
     $render ??= Compile::shape(
-        div(
-            p('Child Component'),
-            button(Slot::value('message'))
-                ->onclick("handleChildClick('Hello from child!')")
-                ->class('child-btn')
-        )
-        ->class('child-component')
-        ->style('border: 1px solid #ddd; padding: 10px; margin: 10px 0;')
+        button(Slot::value('message'))
+            ->type('button')
+            ->data_role('child-button')
+            ->data_message(Slot::value('message'))
     );
 
     return $render(['message' => $message]);
 }
 
-function ParentComponent(iterable|string $child): string
+function ParentShape(string $child): string
 {
     static $render;
     $render ??= Compile::shape(
         div(
-            p('Parent Component'),
+            p('Parent shape'),
             Slot::raw('child'),
-            p()->id('parent-output')->style('margin-top: 10px; color: #666;')
-        )->class('parent-component')
+            output('Waiting for the child.')->id('parent-output')->aria_live('polite')
+        )
     );
 
     return $render(['child' => $child]);
 }
 
-echo ParentComponent(Child('Click me from child!'));
+echo ParentShape(ChildShape('Send from the child'));
 ?>
 <script>
-function handleChildClick(message) {
-    document.getElementById('parent-output').textContent =
-        `Received from child: ${message}`;
-    console.log('Child event:', message);
+const childButton = document.querySelector('[data-role="child-button"]');
+const parentOutput = document.getElementById('parent-output');
+
+if (childButton) {
+    childButton.addEventListener('click', () => {
+        parentOutput.textContent = `Received from child: ${childButton.dataset.message}`;
+    });
 }
 </script>
 ```
 
-The handler is compiled into the shape as a static attribute, so the handler
-name cannot come from request data. See
-[Compiled Rendering](/guide/compiled) for the full pipeline.
+This is shape composition rather than a registered component unit. The message is escaped as ordinary attribute data; no request value is inserted into JavaScript source. See [Compiled Rendering](/guide/compiled) for the full pipeline.
 
-## Custom Event Attributes
+## Custom Browser Events
 
-Handle any HTML event attribute:
+The image below uses a self-contained data URI, so the example has no placeholder service dependency:
 
 ```php
 <?php
 
-use function Pure\HTML\{div, img};
+use function Pure\HTML\{button, div, img, output};
 
-function CustomEventAttributes()
-{
-    return div(
-        div('Image with load event:'),
-        img()
-            ->src('https://via.placeholder.com/200x100')
-            ->alt('Placeholder image')
-            ->onload('console.log("Image loaded!")')
-            ->onerror('console.log("Image failed to load")')
-            ->style('display: block; margin: 10px 0;'),
+echo div(
+    img()
+        ->src('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==')
+        ->alt('Embedded placeholder image')
+        ->width(200)
+        ->height(100)
+        ->id('load-image'),
+    button('Focus me')->type('button')->id('focus-button'),
+    output('Waiting.')->id('custom-status')->aria_live('polite')
+)->class('custom-events');
+?>
+<script>
+const loadImage = document.getElementById('load-image');
+const focusButton = document.getElementById('focus-button');
+const customStatus = document.getElementById('custom-status');
 
-        div('Div with focus events:'),
-        div('Click to focus, then press Tab')
-            ->tabindex('0')
-            ->onfocus('this.style.outline = "2px solid blue"')
-            ->onblur('this.style.outline = "none"')
-            ->style('padding: 10px; border: 1px solid #ccc; margin: 10px 0;')
-    )->class('custom-events');
+function announceImageLoaded() {
+    customStatus.textContent = 'Image loaded.';
 }
-CustomEventAttributes()->print();
+
+function announceImageError() {
+    customStatus.textContent = 'Image failed to load.';
+}
+
+loadImage.addEventListener('load', announceImageLoaded);
+loadImage.addEventListener('error', announceImageError);
+if (loadImage.complete) announceImageLoaded();
+
+focusButton.addEventListener('focus', () => {
+    focusButton.style.outline = '2px solid blue';
+});
+
+focusButton.addEventListener('blur', () => {
+    focusButton.style.outline = '';
+});
+</script>
 ```
+
+For a local asset, use a stable application path such as `/assets/placeholder.svg` and keep the file under the same origin as the page.
 
 ## Event Handler Best Practices
 
-### 1. Inline vs External Handlers
+### Prefer `addEventListener`
 
-```php
-<?php
+Render semantic HTML first, then attach behavior in a same-origin JavaScript file. Use `textContent` for status text, keep request data in text or escaped data attributes, and call `preventDefault()` only when the browser default must be replaced.
 
-use function Pure\HTML\{div, button};
+The standalone examples keep their `<script>` blocks inline so each file can be copied and run. A production page with a strict CSP should move the listener code to an external `.js` file or authorize the script with a nonce or hash.
 
-// Inline handler (good for simple actions)
-$inlineButton = button('Inline Handler')
-    ->onclick('alert("Hello from inline!")')
-    ->class('btn');
+### CSP and Inline Attributes
 
-// External handler (better for complex logic)
-$externalButton = button('External Handler')
-    ->onclick('handleComplexAction()')
-    ->class('btn');
-
-div(
-    $inlineButton,
-    $externalButton
-)->print();
-?>
-<script>
-function handleComplexAction()
-{
-    // Complex logic here
-    console.log('Complex action executed');
-    // ... more code
-}
-</script>
-```
-
-### 2. Event Object Usage
-
-```php
-<?php
-
-use function Pure\HTML\{div, button};
-
-function EventObjectExample()
-{
-    return div(
-        button('Get Event Info')
-            ->onclick('showEventInfo(event)')
-            ->class('btn'),
-        div()->id('event-info')->style('margin-top: 10px; font-family: monospace;')
-    )->class('event-object-example');
-}
-
-echo EventObjectExample();
-?>
-<script>
-function showEventInfo(event) {
-    const info = `
-        Event Type: ${event.type}
-        Target: ${event.target.tagName}
-        Timestamp: ${event.timeStamp}
-        Coordinates: (${event.clientX}, ${event.clientY})
-    `;
-    document.getElementById('event-info').textContent = info;
-}
-</script>
-```
+`->onclick(...)`, `->onsubmit(...)` and similar methods create inline event-handler attributes. CSP `script-src` policies without `'unsafe-inline'` block those attributes. JavaScript attached with `addEventListener` from an allowed external script is not an inline handler attribute, so prefer that default and do not weaken CSP merely to keep `onclick` working.
 
 ## Next Steps
 
-- [HTMX Integration](/guide/htmx) - Learn how to combine with HTMX
-- [Components](/guide/components) - Components wrap shapes
-- [Props and Slots](/guide/props) - Slot types and data binding
+- [HTMX Integration](/guide/htmx) - Combine server-rendered fragments with HTMX
+- [Components](/guide/components) - Compose reusable units around shapes
+- [Props and Slots](/guide/props) - Bind display data without injecting it into scripts

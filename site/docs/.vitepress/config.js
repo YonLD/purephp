@@ -11,7 +11,17 @@ export default {
         nav: [
           { text: 'Home', link: '/' },
           { text: 'Guide', link: '/guide/' },
-          { text: 'API', link: '/api/' }
+          { text: 'API', link: '/api/' },
+          { text: 'Examples', link: '/guide/examples' },
+          {
+            text: 'Project',
+            items: [
+              { text: 'Upgrading', link: '/guide/upgrading' },
+              { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+              { text: 'Changelog', link: 'https://github.com/YonLD/purephp/blob/main/CHANGELOG.md' },
+              { text: 'License', link: 'https://github.com/YonLD/purephp/blob/main/LICENSE' }
+            ]
+          }
         ]
       }
     },
@@ -22,7 +32,17 @@ export default {
         nav: [
           { text: '首页', link: '/zh/' },
           { text: '指南', link: '/zh/guide/' },
-          { text: 'API', link: '/zh/api/' }
+          { text: 'API', link: '/zh/api/' },
+          { text: '示例', link: '/zh/guide/examples' },
+          {
+            text: '项目',
+            items: [
+              { text: '升级', link: '/zh/guide/upgrading' },
+              { text: '故障排查', link: '/zh/guide/troubleshooting' },
+              { text: '变更日志', link: 'https://github.com/YonLD/purephp/blob/main/CHANGELOG.md' },
+              { text: '许可证', link: 'https://github.com/YonLD/purephp/blob/main/LICENSE' }
+            ]
+          }
         ]
       }
     }
@@ -41,12 +61,12 @@ export default {
           text: '基础',
           items: [
             { text: '基本用法', link: '/zh/guide/basic-usage' },
-            { text: '基本概念', link: '/zh/guide/concepts' },
+            { text: '核心概念', link: '/zh/guide/concepts' },
             { text: 'Props 与 Slot', link: '/zh/guide/props' }
           ]
         },
         {
-          text: '核心',
+          text: '构建界面',
           items: [
             { text: '组件', link: '/zh/guide/components' },
             { text: '编译渲染', link: '/zh/guide/compiled' },
@@ -54,10 +74,11 @@ export default {
           ]
         },
         {
-          text: '进阶',
+          text: '探索',
           items: [
+            { text: '示例', link: '/zh/guide/examples' },
             { text: '事件', link: '/zh/guide/events' },
-            { text: 'SVG 和 XML 支持', link: '/zh/guide/svg-xml' },
+            { text: 'SVG 与 XML 支持', link: '/zh/guide/svg-xml' },
             { text: '工具函数', link: '/zh/guide/utils' }
           ]
         },
@@ -69,9 +90,23 @@ export default {
           ]
         },
         {
+          text: '支持与维护',
+          items: [
+            { text: '故障排查', link: '/zh/guide/troubleshooting' },
+            { text: '升级与发布', link: '/zh/guide/upgrading' }
+          ]
+        },
+        {
           text: 'API 参考',
           items: [
-            { text: '核心类', link: '/zh/api/' }
+            { text: '概览', link: '/zh/api/' },
+            { text: '组件 API', link: '/zh/api/component' },
+            { text: '编译 API', link: '/zh/api/compile' },
+            { text: 'Tag 类', link: '/zh/api/tag' },
+            { text: 'HTML 类', link: '/zh/api/html' },
+            { text: 'SVG 类', link: '/zh/api/svg' },
+            { text: 'XML 类', link: '/zh/api/xml' },
+            { text: 'Raw 类', link: '/zh/api/raw' }
           ]
         }
       ],
@@ -80,12 +115,13 @@ export default {
           text: 'API 参考',
           items: [
             { text: '概览', link: '/zh/api/' },
+            { text: '组件 API', link: '/zh/api/component' },
+            { text: '编译 API', link: '/zh/api/compile' },
             { text: 'Tag 类', link: '/zh/api/tag' },
             { text: 'HTML 类', link: '/zh/api/html' },
             { text: 'SVG 类', link: '/zh/api/svg' },
             { text: 'XML 类', link: '/zh/api/xml' },
-            { text: 'Raw 类', link: '/zh/api/raw' },
-            { text: 'Compile API', link: '/zh/api/compile' }
+            { text: 'Raw 类', link: '/zh/api/raw' }
           ]
         }
       ],
@@ -107,7 +143,7 @@ export default {
           ]
         },
         {
-          text: 'Core',
+          text: 'Build with PurePHP',
           items: [
             { text: 'Components', link: '/guide/components' },
             { text: 'Compiled Rendering', link: '/guide/compiled' },
@@ -115,24 +151,39 @@ export default {
           ]
         },
         {
-          text: 'Advanced',
+          text: 'Explore',
           items: [
+            { text: 'Examples', link: '/guide/examples' },
             { text: 'Events', link: '/guide/events' },
             { text: 'SVG and XML Support', link: '/guide/svg-xml' },
             { text: 'Utility Functions', link: '/guide/utils' }
           ]
         },
         {
-          text: 'Integration',
+          text: 'Integrations',
           items: [
             { text: 'HTMX', link: '/guide/htmx' },
             { text: 'TailwindCSS', link: '/guide/tailwindcss' }
           ]
         },
         {
+          text: 'Support & Maintenance',
+          items: [
+            { text: 'Troubleshooting', link: '/guide/troubleshooting' },
+            { text: 'Upgrading & Releases', link: '/guide/upgrading' }
+          ]
+        },
+        {
           text: 'API Reference',
           items: [
-            { text: 'Core Classes', link: '/api/' }
+            { text: 'Overview', link: '/api/' },
+            { text: 'Component API', link: '/api/component' },
+            { text: 'Compile API', link: '/api/compile' },
+            { text: 'Tag Class', link: '/api/tag' },
+            { text: 'HTML Class', link: '/api/html' },
+            { text: 'SVG Class', link: '/api/svg' },
+            { text: 'XML Class', link: '/api/xml' },
+            { text: 'Raw Class', link: '/api/raw' }
           ]
         }
       ],
@@ -141,12 +192,13 @@ export default {
           text: 'API Reference',
           items: [
             { text: 'Overview', link: '/api/' },
+            { text: 'Component API', link: '/api/component' },
+            { text: 'Compile API', link: '/api/compile' },
             { text: 'Tag Class', link: '/api/tag' },
             { text: 'HTML Class', link: '/api/html' },
             { text: 'SVG Class', link: '/api/svg' },
             { text: 'XML Class', link: '/api/xml' },
-            { text: 'Raw Class', link: '/api/raw' },
-            { text: 'Compiled Rendering', link: '/api/compile' }
+            { text: 'Raw Class', link: '/api/raw' }
           ]
         }
       ],

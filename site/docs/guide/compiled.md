@@ -10,11 +10,12 @@ template engines.
 
 A component's factory returns a bare tag tree of `Slot` placeholders; the
 registry wraps it into a `Shape` — the same wrap `Compile::shape()` performs
-for an inline tree. Templates are built **once per process** — a long-running
-worker, a preloaded or CLI process, or any runtime that keeps PHP state between
-requests. Under standard PHP-FPM every request starts fresh, so enable the
-on-disk cache (see [Caching](#caching)) to load compiled renderers instead of
-regenerating them per request, or deploy with precompiled artifacts
+for an inline tree. Templates are built **once per process** — in a long-running
+worker, a CLI process, or another runtime that keeps PHP state between requests.
+`opcache.preload` can keep code in memory but does not preserve static shape
+state across requests. Under standard PHP-FPM every request starts fresh, so
+enable the on-disk cache (see [Caching](#caching)) to load compiled renderers
+instead of regenerating them per request, or deploy with precompiled artifacts
 (see [Artifacts & Deployment](/guide/artifacts)).
 
 ## Shape, Slot, Renderer
@@ -25,7 +26,7 @@ regenerating them per request, or deploy with precompiled artifacts
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
 
-use function Pure\HTML\{div, h1, li, ul};
+use function Pure\HTML\{div, h1, li, span, ul};
 
 // A shape is a normal tag tree with Slot placeholders instead of data.
 $item = Compile::shape(li(Slot::value('title')));
@@ -71,6 +72,11 @@ are in [Missing Data](/guide/props#missing-data).
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{li, span};
 
 $item = Compile::shape(
     li(
@@ -127,6 +133,11 @@ the [Mixed Lists](#mixed-lists) appendix.
 ```php
 <?php
 
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{li, ul};
+
 $row = Compile::shape(li(Slot::value('label')));
 
 $shape = Compile::shape(ul(Slot::each('rows', $row)));
@@ -152,14 +163,15 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 
 - `Compile::cachePath($dir)` enables the on-disk renderer cache; pass `null`
   to disable (default).
-- Cache files are content-addressed by `Shape::id()`; a changed shape writes a
-  new file.
+- Cache files are content-addressed by `Shape::id()`; a changed shape or PHP
+  minor writes a new file.
 - Writes are atomic (temporary file + rename), so concurrent workers are safe.
-- Cache files are plain PHP and opcache-friendly. The directory must be
-  private: owned by the PHP user, not writable by group or others (`0700` is
-  created when missing), and outside the web root — `cachePath()` rejects
-  loose or foreign-owned directories; do not point it at a shared location
-  like `/tmp`.
+- Cache files are plain PHP and opcache-friendly. `cachePath()` creates a
+  missing directory with mode `0700`, rejects group/other-writable modes, and,
+  when the POSIX owner API is available, rejects a directory owned by another
+  user. It does not check whether the path is outside the web root, so keep the
+  cache in a dedicated directory outside the document root; do not point it at
+  a shared location like `/tmp`.
 - `Compile::clearCache()` deletes the files written by the library.
 - `Compile::flush()` invalidates in-memory renderers (useful in long-running
   workers after a deploy).
@@ -170,6 +182,8 @@ guard:
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
 
 Compile::guard(true);           // or set PURE_COMPILE_GUARD=1
 ```
@@ -190,32 +204,47 @@ requests load compiled renderers — see
 
 ## Performance
 
-Two costs matter per request: what a process pays to get a renderer, and what it
-pays to render with it. `bench/README.md` holds the recorded rows; absolute
-numbers move with the PHP version, opcache and the CPU, so run the scripts
-before comparing them with the table below (PHP 8.1.34, one 604-element page of
-200 rows, `php bench/compare.php`).
+This section is the canonical recorded performance reference for the
+documentation. The snapshot below comes from
+[`bench/README.md` at commit `c9b33e3`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/README.md#recorded-numbers),
+with the benchmark sources pinned to
+[that same commit](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench).
+`bench/compare.php` used 200 rows (about 604 rendered elements) for 3000
+iterations on an AMD Ryzen 5 7500F running Linux with PHP 8.4.24 CLI (NTS,
+opcache 8.4.24), recorded 2026-09-16.
 
-| Path | Time per render | End-to-end speedup |
-| --- | --- | --- |
-| build tree + `Tag::render()` | ~1.2 ms | 1× |
-| render only (same tree reused) | ~345 µs | 3.4× |
-| compiled shape + data | ~180 µs | 6.6× |
-| compiled static tree (literal) | < 1 µs | — |
+| Path | No opcache | Opcache | Opcache + JIT |
+| --- | ---: | ---: | ---: |
+| build tree + `Tag::render()` | 631.0 µs | 608.3 µs | 433.8 µs |
+| compiled shape + data | 141.7 µs | 135.2 µs | 107.9 µs |
+| render only (tree reused) | 224.2 µs | 212.4 µs | 163.5 µs |
+| compiled static tree (literal) | 0.1 µs | 0.1 µs | 0.2 µs |
+| end-to-end speedup | 4.5× | 4.5× | 4.0× |
 
-With opcache the build stays expensive while the compiled path barely changes, so
-the speedup lands at 5.5×, and 4.6× with the JIT on. The precompiled artifact
-path removes the build from that second column entirely: for one page shape,
-building and compiling cost ~2.9 ms against ~25–67 µs to require its artifact
-(`php bench/artifact.php --write && php bench/artifact.php`).
+Treat these as one recorded run, not a promise for another CPU or PHP build. The
+same source snapshot also documents artifact loading (`bench/artifact.php`),
+renderer-cache behavior (`bench/cache.php`), component loading
+(`bench/registry.php`) and a full page (`examples/bootstrap/bench.php`). Use
+those scripts on the target deployment before choosing between workers, the
+runtime cache and precompiled artifacts.
 
-What a whole page costs depends on how it is composed. The bootstrap features
-page builds its body from component calls, so `examples/bootstrap/bench.php`
-measures the real page, not one shape: ~340 µs/op for the tag tree, ~104 µs/op
-for the page function over its artifact (2.8–3.3×), and ~20 µs/op for the plain
-view. The benchmark's `skeleton artifact + bindings` row renders the page
-*template* with the component markup already bound, so its ~1.5 µs is a per-shape
-figure, not a page render.
+The supporting rows from that snapshot: a precompiled artifact takes 38–67 µs to
+`require` cold and ~25 µs warm, at 1.4–2.5 µs per render (`bench/artifact.php`);
+the renderer cache takes ~0.78 ms cold and ~0.26 ms warm (`bench/cache.php`);
+with opcache, 22 component artifacts load in 10–14 µs in total
+(`bench/registry.php`); and the example page runs ~104 µs as a page function and
+~20 µs as a plain view (`examples/bootstrap/bench.php`). Validating content costs
+more than compiling it: hashing every unit measured ~7 µs per file and reading
+each artifact header ~4 µs, against ~0.5 µs to load the artifact with opcache.
+
+## Trusted Markup and Deployment
+
+`Slot::raw()` and component `Markup` children are emitted verbatim. Treat them
+as trusted inputs, validate URL schemes and active attributes, and use a browser
+Content Security Policy when a page intentionally includes scripts or styles.
+Escaping in compiled text/value slots protects syntax; it is not a sanitizer for
+URLs or user-provided markup. Precompiled `*.pure.php` files are executable PHP
+and should be built from trusted source with restricted write access.
 
 ## Limitations
 
@@ -234,11 +263,16 @@ figure, not a page render.
 ## Mixed Lists
 
 A shape has one structure, so a list whose items need different markup is
-dispatched in the data layer: render each item through the call function that
-fits it and pass the joined markup into a raw slot.
+dispatched in the data layer: build each item's markup there and pass the
+joined result into a raw slot.
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
 
 function Blocks(array $blocks): string
 {
@@ -246,8 +280,12 @@ function Blocks(array $blocks): string
 
     foreach ($blocks as $block) {
         $html .= $block['kind'] === 'link'
-            ? LinkBlock($block['value'], $block['href'])
-            : TextBlock($block['value']);
+            ? sprintf(
+                '<a href="%s">%s</a>',
+                htmlspecialchars($block['href'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8')
+            )
+            : htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8');
     }
 
     return $html;

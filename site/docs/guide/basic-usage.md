@@ -2,6 +2,10 @@
 
 **Prerequisites**: [Quick Start](/guide/getting-started); **On this page**: the tag API — creating elements, setting attributes, immediate rendering.
 
+The examples assume the application has already loaded Composer's
+`vendor/autoload.php`; import the specific `Pure\HTML`, `Pure\SVG`, or
+`Pure\Core` symbols used by the snippet.
+
 ::: tip Tag API vs. compiled rendering
 This page documents the tag API used for snippets, prototypes, and debugging; trees built this way render immediately via `render()` / `print()`. Production pages should compile shapes instead — see [Compiled Rendering](/guide/compiled).
 :::
@@ -63,6 +67,9 @@ $tag = 'my-element';
 HTML::{$tag}('Content')->class('dynamic')->print();
 ```
 
+Use a fixed allowlist for dynamic tag names. The renderer writes the tag name
+as supplied; it does not make an untrusted name safe.
+
 ### 2. Setting Attributes
 
 Use method chaining to set element attributes:
@@ -111,9 +118,11 @@ $custom = HTML::myCustomTag('Custom content')->data_component('special');
 
 ### 1. String Content vs Raw Content
 
-String children are always escaped, so they are safe for user input and never
-lose data: comparison text such as `2<3` or `a<b` stays visible. Markup-looking
-strings are shown as text instead of being parsed:
+String children and ordinary attribute values are escaped as HTML syntax.
+This prevents a string from becoming a new tag or quote-breaking attribute, and
+keeps comparison text such as `2<3` or `a<b` visible. It is not a complete URL
+or script policy: `href`/`src` schemes, event-handler attributes, `style`, and
+dynamic tag names still need validation or a Content Security Policy.
 
 ```php
 <?php
@@ -131,16 +140,21 @@ div(Raw::of('<p>This is preserved</p>'))->print();
 // Output: <div><p>This is preserved</p></div>
 ```
 
+Markup-looking strings are shown as text instead of being parsed. This boundary
+is syntactic: it does not validate a URL such as `javascript:` or an event
+attribute, and it cannot make `Raw::of()` safe.
+
 **Why this matters:**
-- **Security**: Escaping neutralizes XSS in user input
-- **No data loss**: Text that merely looks like markup is kept verbatim
-- **Intentionality**: Emitting markup requires an explicit Raw::of() wrapper
+- **Syntax safety**: Escaping prevents ordinary text and attributes from creating markup
+- **No data loss**: Text that merely looks like markup is kept visible
+- **Intentionality**: Emitting markup requires an explicit `Raw::of()` wrapper
+- **Defense in depth**: Validate URL schemes and active attributes, restrict dynamic tag names, and use CSP
 
 **When to use Raw::of():**
-- Including pre-formatted HTML/XML content
-- Embedding templates or external content
+- Including pre-formatted HTML/XML content you control
+- Embedding a template or external document after validating its source
 - Working with trusted HTML/XML strings
-- Including JavaScript or CSS code blocks
+- Including JavaScript or CSS only when the document's CSP and trust model allow it
 
 ### 2. className Alias
 
@@ -274,6 +288,11 @@ svg(
         ->fill('blue')
 )->width('100')->height('100')->print();
 ```
+
+SVG is treated as a fragment and does not add an `xmlns` attribute
+automatically. For a standalone `.svg` file, set the namespace explicitly with
+`->xmlns('http://www.w3.org/2000/svg')`; `save()` still supplies the XML
+declaration unless you pass a custom header.
 
 ## Conditional Rendering
 

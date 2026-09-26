@@ -1,84 +1,97 @@
-# PurePHP with TailwindCSS Integration
+# PurePHP with Tailwind CSS
 
-**Prerequisites**: [Components](/guide/components); **On this page**: combining Tailwind classes with PurePHP components.
+**Prerequisites**: [Components](/guide/components); **On this page**: a pinned Tailwind CSS v4 build and accessible component examples.
 
-The combination of PurePHP and TailwindCSS provides a powerful development experience: component-based PHP templating engine paired with a utility-first CSS framework.
-
-::: tip Static classes, dynamic slots
-Reusable components in this guide are compiled shapes: static Tailwind class strings are written once at build time and per-request values arrive through slots. See [Components](/guide/components) and [Compiled Rendering](/guide/compiled). The immediate tag API (`render()` / `print()`) remains available for snippets, and Tailwind finds the class names in both paths because they always live in PHP source.
-:::
-
-## Why Choose This Combination?
-
-- **PurePHP**: Provides component-based PHP template rendering
-- **TailwindCSS**: Provides utility-first CSS class system
-- **Perfect Complement**: PurePHP handles structure and logic, TailwindCSS handles styling
+PurePHP supplies the HTML structure and Tailwind CSS supplies utility classes. This
+page uses one explicit major version: **Tailwind CSS 4.3.3** with the dedicated
+`@tailwindcss/cli` package. It uses the v4 CSS-first flow; it does not mix v3
+configuration or `@tailwind` directives into the same project.
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Install the pinned toolchain
 
-First install PurePHP:
+Install PurePHP and the exact Tailwind packages:
 
 ```bash
 composer require yonld/purephp
+npm install --save-dev --save-exact tailwindcss@4.3.3 @tailwindcss/cli@4.3.3
 ```
 
-Then install TailwindCSS:
+Commit `package-lock.json` and use `npm ci` in repeatable builds. If you need a
+newer Tailwind release, change both packages deliberately and rerun the CSS build;
+do not let one package silently move to another major.
+
+### 2. Create the CSS entry
+
+Create `src/input.css`. The regular CSS import is the v4 entry point. The
+`@source` paths are relative to this file and point at the PHP source directories
+that contain class strings:
+
+```css [src/input.css]
+@import "tailwindcss";
+@source "../components";
+@source "../views";
+```
+
+Add another `@source` line for every application directory that contains PHP
+templates. There is no required `tailwind.config.js` in this flow, and the v3
+`@tailwind base`, `@tailwind components`, and `@tailwind utilities` directives are
+not used.
+
+### 3. Build the stylesheet
+
+Run these commands from the project root with the dedicated CLI and the same
+input and output paths shown above:
 
 ```bash
-npm install -D tailwindcss
-npx tailwindcss init
+npx @tailwindcss/cli -i ./src/input.css -o ./public/app.css --watch
 ```
 
-### 2. Configure TailwindCSS
+For a production build, use the pinned lockfile and minify the same file:
 
-Configure content paths in `tailwind.config.js`:
+```bash
+npm ci
+npx @tailwindcss/cli -i ./src/input.css -o ./public/app.css --minify
+```
 
-```javascript
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.php",
-    "./public/**/*.php",
-    "./components/**/*.php",
-    "./views/**/*.php"
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
+The equivalent `package.json` scripts are:
+
+```json
+{
+  "scripts": {
+    "css:watch": "npx @tailwindcss/cli -i ./src/input.css -o ./public/app.css --watch",
+    "css:build": "npx @tailwindcss/cli -i ./src/input.css -o ./public/app.css --minify"
+  }
 }
 ```
 
-### 3. Create CSS File
+Load the generated file from the document, not the input file:
 
-Create `src/input.css`:
-
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-### 4. Build CSS
-
-```bash
-npx tailwindcss -i ./src/input.css -o ./public/output.css --watch
+```html
+<link rel="stylesheet" href="/app.css">
 ```
 
 ## Basic Usage
 
-### Simple Component
+The PHP examples below are root-level files. If you move one into a nested
+component directory, adjust its `vendor/autoload.php` path accordingly.
 
-The variant decides the static class list, so each variant is memoized as its
-own renderer; the title and content are dynamic and become slots:
+### Simple component
 
-```php
+Static class strings are part of the data-free tree; the title and content are
+request values in slots:
+
+```php [card.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
+
 use function Pure\HTML\{div, h1, p};
 
 function Card(string $title, string $content, string $variant = 'default'): string
@@ -86,12 +99,12 @@ function Card(string $title, string $content, string $variant = 'default'): stri
     static $renders = [];
 
     $baseClasses = 'rounded-lg shadow-md p-6 bg-white';
-    $variantClasses = match($variant) {
+    $variantClasses = match ($variant) {
         'primary' => 'border-l-4 border-blue-500',
         'success' => 'border-l-4 border-green-500',
         'warning' => 'border-l-4 border-yellow-500',
         'danger' => 'border-l-4 border-red-500',
-        default => 'border border-gray-200'
+        default => 'border border-gray-200',
     };
 
     $render = $renders[$variant] ??= Compile::shape(
@@ -107,24 +120,30 @@ function Card(string $title, string $content, string $variant = 'default'): stri
     ]);
 }
 
-echo Card('Welcome to PurePHP', 'This is a card component styled with TailwindCSS', 'primary');
+echo Card('Welcome to PurePHP', 'Styled with Tailwind CSS', 'primary');
 ```
 
-### Responsive Layout
+### Responsive layout
 
-The grid has no data of its own; it renders each item with `ProjectCard()` and
-injects the joined markup through `Slot::raw()`:
+The grid is a shape with a raw slot for already-rendered project cards. The image
+URL is a value slot, so it is escaped as an attribute:
 
-```php
+```php [responsive-grid.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
-use function Pure\HTML\{div, h2, p, img};
+
+use function Pure\HTML\{div, h2, img, p};
 
 function ProjectCard(string $title, string $description, string $image): string
 {
-    static $render;
+    static $render = null;
+
     $render ??= Compile::shape(
         div(
             img()->src(Slot::value('image'))->alt(Slot::value('title'))
@@ -136,12 +155,17 @@ function ProjectCard(string $title, string $description, string $image): string
         )->class('bg-white rounded-lg shadow-md overflow-hidden')
     );
 
-    return $render(['title' => $title, 'description' => $description, 'image' => $image]);
+    return $render([
+        'title' => $title,
+        'description' => $description,
+        'image' => $image,
+    ]);
 }
 
 function ResponsiveGrid(array $items): string
 {
-    static $render;
+    static $render = null;
+
     $render ??= Compile::shape(
         div(Slot::raw('items'))
             ->class('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6')
@@ -150,11 +174,16 @@ function ResponsiveGrid(array $items): string
     $cards = [];
 
     foreach ($items as $item) {
-        $cards[] = ProjectCard($item['title'], $item['description'], $item['image']);
+        $cards[] = ProjectCard(
+            $item['title'],
+            $item['description'],
+            $item['image']
+        );
     }
 
     return $render(['items' => implode('', $cards)]);
 }
+
 echo ResponsiveGrid([
     ['title' => 'Project 1', 'description' => 'Description 1', 'image' => 'image1.jpg'],
     ['title' => 'Project 2', 'description' => 'Description 2', 'image' => 'image2.jpg'],
@@ -162,26 +191,33 @@ echo ResponsiveGrid([
 ]);
 ```
 
-### Form Components
+### Accessible form fields
 
-Field configuration is passed as arguments; the error message and the
-error-state input class are bound per request (`Slot::if()` renders the error
-line only when data provides it):
+`FormField()` dispatches on the requested type. A `textarea` value is a child of
+`textarea()`, not a `type="textarea"` input. The label is connected with `for`,
+the control exposes `aria-invalid`, and `aria-describedby` points to the error
+only when an error exists.
 
-```php
+```php [contact-form.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
-use function Pure\HTML\{form, div, label, input, button, span};
 
-const INPUT_CLASS = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300';
+use function Pure\HTML\{button, div, form, input, label, span, textarea};
+
+const INPUT_CLASS = 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300';
 
 function FormField(
     string $labelText,
     string $name,
     string $type = 'text',
     string $placeholder = '',
+    string $value = '',
     bool $required = false,
     string $inputClass = INPUT_CLASS,
     string $error = ''
@@ -189,29 +225,55 @@ function FormField(
     static $renders = [];
 
     $key = "{$labelText}|{$name}|{$type}|{$placeholder}|" . (int)$required;
+    $control = $type === 'textarea'
+        ? textarea(Slot::value('value'))
+            ->name($name)
+            ->id($name)
+            ->placeholder($placeholder)
+            ->required($required)
+            ->class(Slot::value('inputClass'))
+            ->aria_invalid(Slot::value('ariaInvalid'))
+            ->aria_describedby(Slot::value('describedBy')->default(null))
+        : input()
+            ->type($type)
+            ->name($name)
+            ->id($name)
+            ->placeholder($placeholder)
+            ->required($required)
+            ->value(Slot::value('value'))
+            ->class(Slot::value('inputClass'))
+            ->aria_invalid(Slot::value('ariaInvalid'))
+            ->aria_describedby(Slot::value('describedBy')->default(null));
 
     $render = $renders[$key] ??= Compile::shape(
         div(
             label($labelText)
                 ->for($name)
                 ->class('block text-sm font-medium text-gray-700 mb-1'),
-            input()
-                ->type($type)
-                ->name($name)
-                ->id($name)
-                ->placeholder($placeholder)
-                ->required($required)
-                ->class(Slot::value('inputClass')),
-            Slot::if('error', span(Slot::value('error'))->class('text-red-500 text-sm mt-1'))
+            $control,
+            Slot::if(
+                'error',
+                span(Slot::value('error'))
+                    ->id("{$name}-error")
+                    ->class('text-red-500 text-sm mt-1')
+                    ->role('alert')
+            )
         )->class('mb-4')
     );
 
-    return $render(['inputClass' => $inputClass, 'error' => $error]);
+    return $render([
+        'value' => $value,
+        'inputClass' => $inputClass,
+        'ariaInvalid' => $error !== '' ? 'true' : 'false',
+        'describedBy' => $error !== '' ? "{$name}-error" : null,
+        'error' => $error,
+    ]);
 }
 
 function ContactForm(array $fields): string
 {
-    static $render;
+    static $render = null;
+
     $render ??= Compile::shape(
         form(
             Slot::raw('fields'),
@@ -225,47 +287,67 @@ function ContactForm(array $fields): string
 
     foreach ($fields as $field) {
         $html .= FormField(
-            $field['label'],
-            $field['name'],
-            $field['type'] ?? 'text',
-            $field['placeholder'] ?? '',
-            $field['required'] ?? false,
-            $field['inputClass'] ?? INPUT_CLASS,
-            $field['error'] ?? '',
+            labelText: $field['label'],
+            name: $field['name'],
+            type: $field['type'] ?? 'text',
+            placeholder: $field['placeholder'] ?? '',
+            value: $field['value'] ?? '',
+            required: $field['required'] ?? false,
+            inputClass: $field['inputClass'] ?? INPUT_CLASS,
+            error: $field['error'] ?? ''
         );
     }
 
     return $render(['fields' => $html]);
 }
 
-// Only the errored field overrides the default input class
 echo ContactForm([
-    ['label' => 'Name', 'name' => 'name', 'placeholder' => 'Enter your name', 'required' => true],
+    [
+        'label' => 'Name',
+        'name' => 'name',
+        'placeholder' => 'Enter your name',
+        'required' => true,
+    ],
     [
         'label' => 'Email',
         'name' => 'email',
         'type' => 'email',
         'placeholder' => 'Enter your email',
+        'value' => 'not-an-email',
         'required' => true,
         'error' => 'Enter a valid email address',
-        'inputClass' => 'w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-red-500',
     ],
-    ['label' => 'Message', 'name' => 'message', 'type' => 'textarea', 'placeholder' => 'Enter your message'],
+    [
+        'label' => 'Message',
+        'name' => 'message',
+        'type' => 'textarea',
+        'placeholder' => 'Enter your message',
+        'value' => 'Tell us what you need.',
+    ],
 ]);
 ```
 
+The example uses `Slot::value('value')` for both input attributes and textarea
+children, so submitted values are escaped. Keep class names in application code
+or configuration, as in the example: `Slot::value()` escapes but does not
+validate class tokens, so never pass raw user input as a Tailwind class.
+
 ## Advanced Usage
 
-### Dynamic Class Names
+### Dynamic class names
 
-Variant, size, and state decide the static class list, so each combination is
-memoized as its own renderer. Only the label is dynamic:
+Choose a variant, size, and state from a fixed map. Only the label is dynamic:
 
-```php
+```php [action-button.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
+
 use function Pure\HTML\button;
 
 function ActionButton(
@@ -278,28 +360,23 @@ function ActionButton(
     static $renders = [];
 
     $baseClasses = 'font-medium rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
-
-    $variantClasses = match($variant) {
+    $variantClasses = match ($variant) {
         'primary' => 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
         'secondary' => 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
         'success' => 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
         'danger' => 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
         'outline' => 'border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-        default => 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+        default => 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
     };
-
-    $sizeClasses = match($size) {
+    $sizeClasses = match ($size) {
         'sm' => 'px-3 py-1.5 text-sm',
         'md' => 'px-4 py-2 text-base',
         'lg' => 'px-6 py-3 text-lg',
-        default => 'px-4 py-2 text-base'
+        default => 'px-4 py-2 text-base',
     };
-
     $widthClasses = $fullWidth ? 'w-full' : '';
     $disabledClasses = $disabled ? 'opacity-50 cursor-not-allowed' : '';
-
     $allClasses = trim("{$baseClasses} {$variantClasses} {$sizeClasses} {$widthClasses} {$disabledClasses}");
-
     $key = "{$variant}|{$size}|" . (int)$disabled . (int)$fullWidth;
 
     $render = $renders[$key] ??= Compile::shape(
@@ -310,25 +387,32 @@ function ActionButton(
 
     return $render(['text' => $text]);
 }
+
 echo ActionButton('Primary Button', 'primary', 'lg');
 ```
 
-### Theme Toggle
+### Theme toggle
 
-The theme decides static class lists, so each theme is memoized as its own
-renderer; the toggle and the page are passed in as rendered components and
-injected through `Slot::raw()`:
+The button exposes the next theme as data. The application's small JavaScript
+listener can toggle the document class; the PHP side only renders the trusted
+markup and static class list.
 
-```php
+```php [theme.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
-use function Pure\HTML\{div, main, h1, button};
+
+use function Pure\HTML\{button, div, h1, main};
 
 function Page(string $title): string
 {
-    static $render;
+    static $render = null;
+
     $render ??= Compile::shape(
         main(h1(Slot::value('title')))->class('container mx-auto p-6')
     );
@@ -340,28 +424,26 @@ function ThemeToggle(string $currentTheme = 'light'): string
 {
     static $renders = [];
 
-    $newTheme = $currentTheme === 'light' ? 'dark' : 'light';
-    $icon = $currentTheme === 'light' ? '🌙' : '☀️';
-
+    $nextTheme = $currentTheme === 'light' ? 'dark' : 'light';
     $render = $renders[$currentTheme] ??= Compile::shape(
-        button("{$icon} Toggle Theme")
-            ->onclick("toggleTheme('{$newTheme}')")
-            ->class('fixed top-4 right-4 px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600')
+        button('Toggle theme')
+            ->type('button')
+            ->data_theme($nextTheme)
+            ->class('fixed top-4 right-4 px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200')
     );
 
     return $render([]);
 }
 
-function ThemeProvider(string $theme, iterable|string $toggle, iterable|string $page): string
+function ThemeProvider(string $theme, string $toggle, string $page): string
 {
     static $renders = [];
 
-    $themeClasses = match($theme) {
+    $themeClasses = match ($theme) {
         'dark' => 'bg-gray-900 text-white',
         'light' => 'bg-white text-gray-900',
-        default => 'bg-white text-gray-900'
+        default => 'bg-white text-gray-900',
     };
-
     $render = $renders[$theme] ??= Compile::shape(
         div(
             Slot::raw('toggle'),
@@ -375,33 +457,41 @@ function ThemeProvider(string $theme, iterable|string $toggle, iterable|string $
 echo ThemeProvider('dark', ThemeToggle('dark'), Page('Dashboard'));
 ```
 
-## Merging Class Names
+### Merge class names
 
-Use the built-in `clx()` helper (see [Utility Functions](/guide/utils)):
+Use the built-in `clx()` helper for a small, explicit class list:
 
-```php
+```php [class-list.php]
 <?php
 
-use function Pure\Utils\clx;
+declare(strict_types=1);
 
-$isActive = true;
-$hasError = false;
+require_once __DIR__ . '/vendor/autoload.php';
+
+use function Pure\Utils\clx;
 
 $classes = clx(
     'base-class',
     'another-class',
     [
-        'active' => $isActive,
-        'error' => $hasError,
-        'text-red-500' => $hasError
+        'active' => true,
+        'error' => false,
+        'text-red-500' => false,
     ]
 );
 
-echo $classes; // Output: base-class another-class active
+echo $classes;
 ```
 
-## Next Steps
+## Next steps
 
-- [TailwindCSS Documentation](https://tailwindcss.com/docs)
-- [PurePHP Component Guide](/guide/components)
-- [PurePHP Utility Functions](/guide/utils)
+1. [Basic Usage](/guide/basic-usage) — inspect the generated tag tree and fragments.
+2. [Components](/guide/components) — move static shapes into registered units.
+3. [Compiled Rendering](/guide/compiled) — understand memoization and slot binding.
+4. [HTMX](/guide/htmx) — return the styled fragment from a server endpoint.
+5. [Artifacts & Deployment](/guide/artifacts) — run the CSS build and PHP checks in CI.
+
+Tailwind v4.3.3 is the version used by this page. Keep the package versions,
+`@source` paths, and CLI commands together when upgrading the toolchain. See the
+[Tailwind CSS documentation](https://tailwindcss.com/docs) for the full utility
+reference.

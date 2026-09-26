@@ -1,7 +1,7 @@
 # Raw Class
 
 `Pure\Core\Raw` represents trusted markup that is emitted verbatim instead of
-being escaped.
+being escaped. It is a trust boundary, not a sanitizer.
 
 ## Core, Not Component Layer
 
@@ -99,6 +99,9 @@ echo $content;
 
 ### Including External Content
 
+Only wrap external content after checking its source and integrity. `Raw::of()`
+does not sanitize HTML, XML, URLs, scripts, or styles:
+
 ```php
 <?php
 
@@ -106,8 +109,10 @@ use Pure\Core\Raw;
 
 use function Pure\HTML\{div, h1};
 
-// Include content from external source
 $externalHtml = file_get_contents('external-content.html');
+if ($externalHtml === false) {
+    throw new RuntimeException('Could not load external content.');
+}
 
 $page = div(
     h1('My Page'),
@@ -187,7 +192,11 @@ echo $page;
 
 ## Security Considerations
 
-⚠️ **Important**: Raw content is not escaped, so be careful when using user-provided content:
+⚠️ **Important**: Raw content is not escaped or sanitized. Never pass
+user-provided content, an unvalidated URL response, or an event/style-bearing
+fragment to `Raw::of()`. Escaping protects ordinary text and attribute syntax;
+it does not validate `javascript:` URLs, inline scripts, event handlers, CSS,
+or dynamic tag names.
 
 ```php
 <?php
@@ -196,15 +205,15 @@ use Pure\Core\Raw;
 
 use function Pure\HTML\div;
 
-// ❌ DANGEROUS - Never do this with user input
-$userInput = $_POST['content']; // Could contain malicious scripts
+$userInput = $_POST['content'] ?? '';
 $dangerous = div(Raw::of($userInput));
-
-// ✅ SAFE - String children are escaped automatically
-$userInput = $_POST['content'];
 $safe = div($userInput);
 
-// ✅ SAFE - Use Raw only for trusted content
 $trustedHtml = '<strong>Admin Message</strong>';
 $safe = div(Raw::of($trustedHtml));
 ```
+
+The first tree is unsafe by design; the second escapes the value as text. The
+third is safe only because the markup is a reviewed constant. Validate active
+inputs at the application boundary and send a restrictive browser Content
+Security Policy for pages that intentionally contain scripts or styles.

@@ -1,6 +1,6 @@
 # Tag 类
 
-`Pure\Core\Tag` 是所有 HTML 和 SVG 标签的基础抽象类。
+`Pure\Core\Tag` 是所有 HTML、XML 和 SVG 标签的基础抽象类。
 
 标签树有两种用途：
 
@@ -14,7 +14,7 @@
 
 ### `class(array|bool|int|float|string|Slot|null ...$args): self`
 
-设置元素的 CSS 类名，内置 `clx` 函数处理多个参数。布尔值会被忽略，因此条件参数依然可用（`->class('btn', $isActive ? 'active' : null)`）。空字符串、`null` 与空数组不会产生 `class` 属性。
+设置元素的 CSS 类名，内置 `clx` 函数处理多个参数。布尔值会被忽略，因此条件参数依然可用（`->class('btn', $isActive ? 'active' : null)`）。空字符串、`null` 与空数组不会产生 `class` 值。后续 `class()` 传入非空值会替换之前的值；后续结果为 `false`/`null` 时会被忽略，不会删除之前的类名。
 
 ```php
 <?php
@@ -88,7 +88,9 @@ $element = div('Content')->setAttrs([
 ]);
 ```
 
-值必须是标量、`Stringable`、`Slot` 或 `null`；数组会抛出 `InvalidArgumentException`（数组请使用 `class()`/`style()`）。键名会像链式 setter 一样归一化：`className` → `class`，`data_id` → `data-id`。
+值必须是标量、`Stringable`、`Slot` 或 `null`；数组会抛出 `InvalidArgumentException`（数组请使用 `class()`/`style()`）。键名会像链式 setter 一样归一化：`className` → `class`，`data_id` → `data-id`。`null` 或 `false` 不会清除之前设置的属性，只会保留已有值；如果后续值必须删除属性，应一次设置最终值。
+
+布尔属性中，`true` 会把属性名作为值保存，`false` 则省略属性。但如果之前已经设置过该属性，省略只是无操作：`input()->checked(true)->checked(false)` 仍会渲染 `checked="checked"`。
 
 ## 获取方法
 
@@ -257,15 +259,31 @@ use function Pure\HTML\{div, h1};
 div(h1('Report'))->save('report.html');
 ```
 
+### `documentHeader(): string`
+
+返回标签类型的默认文档头：`HTML` 为 `<!DOCTYPE html>`，`XML`/`SVG` 为
+`<?xml version="1.0"?>`。`render()` 不会自动添加它；`save()` 会使用它，除非显式传入
+`$header`。
+
 ### `isDocumentRoot(): bool`
 
 该标签是否作为完整文档的根，从而在编译出的无依赖视图中前置文档声明。HTML 树只有在根为
 `<html>` 时才是文档，XML 树始终是；SVG 树是片段（图标以内联方式使用），其独立文件的
-声明仍可通过 `documentHeader()` / `save()` 获得。
+声明仍可通过 `documentHeader()` / `save()` 获得。SVG 不会自动添加 `xmlns`；独立根应
+显式声明命名空间。
+
+## 转义边界
+
+`render()` 会转义文本子节点与普通属性值，但这只是语法边界，不是完整的 Web 安全策略。它
+不会校验 URL 协议（`href`/`src`）、事件属性、内联样式或动态标签名；`Raw`/`Markup`
+子节点会原样输出。请校验活动输入、限制自定义标签名，并在页面包含脚本或其它活动标记时
+配置浏览器 Content Security Policy。
 
 ## 动态属性方法
 
-Tag 类通过 `__call` 魔术方法支持动态设置任何 HTML 属性：
+Tag 类通过 `__call` 魔术方法支持动态设置普通 HTML 属性。包含命名空间分隔符的属性名
+（例如 `xlink:href` 或 `xmlns:soap`）不是普通方法名，可以用动态调用
+`->{'xlink:href'}('...')` 设置，或通过 `setAttrs()` 传入：
 
 ```php
 <?php

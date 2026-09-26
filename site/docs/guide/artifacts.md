@@ -34,12 +34,17 @@ template.
   discovers both `*.cmp.php` units and `*.shape.php` templates, and skips the
   files whose content is already current: the shape is still loaded and compiled
   (so a change in anything it pulls in is picked up), but an up-to-date file is
-  reported as `unchanged:` instead of rewritten. `--list` prints every unit as
-  `name -> file (component|page)` without compiling. `pure compile --check`
-  writes nothing and exits with code 1 when an artifact is stale or missing,
-  which fits a CI step. `--plain` also writes the dependency-free view described
-  below, and `--check --plain` covers both flavors. The repository examples ship
-  `*.cmp.php` units, so `vendor/bin/pure compile examples` compiles them all.
+  reported as `unchanged:` instead of rewritten. `--list` prints the exact
+  labels `name -> file (component)`, `file (shape)`, and
+  `name -> file (template)` for builders marked with `#[Template]`; it does not
+  compile. `pure compile --check` writes nothing and exits with code 1 when an
+  artifact is stale or missing, which fits a CI step. `--plain` also writes the
+  dependency-free view described below, and `--check --plain` covers both
+  flavors. The repository examples ship `*.cmp.php` units, so
+  `vendor/bin/pure compile examples` compiles them all. A typical `--list` line
+  is `Card -> components/Card.cmp.php (component)`; a standalone template is
+  reported as `views/page.shape.php (shape)`, and a `#[Template]` builder as
+  `pageShape -> views/page.cmp.php (template)`.
 - Artifacts render the same output as the runtime compiler (asserted byte for
   byte by the tests) and read as a template: markup stays markup, values become
   `<?= ... ?>`, control flow uses the alternative syntax, and the closure is
@@ -55,6 +60,10 @@ template.
 - An artifact also carries the root slot manifest (`Renderer::$slots`), so the
   development guard can report bindings the template never reads without
   rebuilding the shape tree.
+
+The generated body is illustrative source, not an application API. Its
+`TemplateRuntime` import is emitted by `pure compile`; application code should
+continue to call `Renderer::render()`:
 
 ```php
 <?php
@@ -83,6 +92,15 @@ the header when a `Renderer` is rendered directly. Components in
 ```php
 <?php
 
+use Pure\Component\Binds;
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{body, head, html, title};
+use function Pure\SVG\{svg, svgUse};
+use function Pure\Utils\renderHTML;
+
 // components/Icon.cmp.php: typed props, backed by its precompiled template
 
 function Icon(mixed ...$children): Call
@@ -105,8 +123,15 @@ function Features(mixed ...$children): Call
 }
 
 register(Features(...),
-    factory: static fn () => html(/* ... */),
-    prepare: #[Binds('title', 'content')] static fn (): array => featuresBindings()
+    factory: static fn () =>
+        html(
+            head(title(Slot::value('title'))),
+            body(Slot::raw('content'))
+        ),
+    prepare: #[Binds('title', 'content')] static fn (): array => [
+        'title' => FeaturesService::pageTitle(),
+        'content' => FeaturesBody(),
+    ]
 );
 
 function featuresPage(): string
@@ -116,19 +141,20 @@ function featuresPage(): string
 }
 ```
 
-Each block fetches its own records from the service layer (`FeaturesService` in
-the bootstrap example), so the page function carries no page data and adding a
-prop to a component never touches the page.
+Each block fetches its own records from the service layer in the bootstrap
+example, so the page function carries no page data and adding a prop to a
+component never touches the page.
 
 A child component's markup goes straight into a raw slot — no `(string)` cast —
 and a list of them is concatenated in order.
 
-`Registry::component()` returns the binder of a unit or shape file and loads its
+The public `component()` helper resolves a unit or shape file and loads its
 artifact when one exists next to it and is at least as new as the file;
 otherwise it calls the registered factory (once per compile generation) or
 compiles the shape file (the disk cache still applies). A call returns the
 fragment only — the document header, if you want one, is the caller's to
-prepend.
+prepend. The lower-level `Registry::component()` binder is an internal detail;
+application code should not depend on its signature.
 
 The bootstrap example's `PlainFeaturesController`
 passes the same bindings through the example's
@@ -138,8 +164,10 @@ data), and one router (`public/index.php`) serves every page in both flavors —
 `/plain/features` and `/plain/pricing` render the plain views — so you can
 compare the flavors while developing.
 
-- Build artifacts with the same PHP minor version as production: the fingerprint
-  and the artifact header embed the PHP version, as the cache does.
+- Build artifacts with the same PHP minor version as production:
+  `Shape::id()` salts its SHA-1 input with
+  `PHP_MAJOR_VERSION.PHP_MINOR_VERSION`, and the artifact header records the
+  PHP version. Do not copy artifacts or cache files across PHP minor versions.
 - Artifacts are build output: rebuild them after changing a shape. Loading does
   not verify the shape tree, so `--check` is the way to notice a stale artifact.
 - An artifact also carries its `Compile::CACHE_VERSION`: loading one written by
@@ -153,8 +181,9 @@ compare the flavors while developing.
   an artifact written in the same second as its unit already serves it. This is
   deliberate: `touch`-style skew from a tar, rsync or git checkout is common,
   and an exact comparison would discard those artifacts and recompile them per
-  request. A content hash of every unit measured ~7 µs per file against ~0.5 µs
-  to require its artifact with opcache, so it is not a cheaper guard either.
+  request. The recorded hash-versus-require comparison is in the
+  [canonical performance snapshot](/guide/compiled#performance); commands and
+  source are in the [benchmark repository snapshot](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench).
 - Two source files that would write the same artifact (`a.shape.php` beside
   `a.cmp.php`) are both rejected by `pure compile` with exit code 1, so
   discovery order cannot decide which template owns `a.pure.php`.
@@ -163,8 +192,11 @@ compare the flavors while developing.
 
 ## Contract Check
 
-`pure check` validates the contract of every unit statically, so a mismatch
-fails in CI instead of at render time:
+`pure check` validates the contract of every unit, so a mismatch fails in CI
+instead of at render time. It is a contract check, not a sandbox: to inspect a
+unit it `require`s the file and invokes its registered factory (when present) to
+build its shape. Run it only on trusted source in an isolated CI process; it does not
+write artifacts.
 
 ```bash
 vendor/bin/pure check src
@@ -217,39 +249,66 @@ no shape tree, no fingerprint), a stale or missing one calls the registered
 factory or compiles the shape file. In CI, `pure compile --check` reports stale
 artifacts with exit code 1.
 
+`Compile::cachePath()` creates a missing cache directory with mode `0700` and
+rejects group/other-writable modes. When the POSIX owner API is available it
+also rejects a directory owned by another user, but it does not check that the
+path is outside the web root. Keep the cache in a dedicated directory outside
+the document root with restrictive permissions.
+
 What to enable depends on the deployment:
 
 - **PHP-FPM** — enable `Compile::cachePath()` and build artifacts. Without an
-  artifact every request rebuilds the component's shape tree and walks its
-  fingerprint before rendering: the features page skeleton alone compiles in
-  ~780 µs cold and ~260 µs from the disk cache (`bench/cache.php`). An artifact
-  cuts that to one `require`, and with opcache a require is well under a
-  microsecond.
+  artifact, every request rebuilds the component's shape tree and walks its
+  fingerprint before rendering. An artifact replaces that work with one
+  `require`; see the [canonical performance snapshot](/guide/compiled#performance)
+  and [`bench/cache.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/cache.php)
+  for the recorded comparison.
 - **Long-running workers** (RoadRunner, Swoole, FrankenPHP) — enable
-  `Compile::cachePath()`; the per-path binder cache (built into
-  `Registry::component()`, `static $render` for inline trees) keeps the
-  renderer in memory, so artifacts are optional.
+  `Compile::cachePath()`; the internal per-path binder cache and
+  `static $render` for inline trees keep the renderer in memory, so artifacts
+  are optional.
 - **`opcache.preload`** — preloading keeps code in memory but does not carry
   static variables across requests (PHP's preload RFC states this explicitly),
   so it is not a substitute for either of the above.
 
-With opcache, requiring the artifacts of every component on a page costs about
-half a microsecond each (22 artifacts load in ~10 µs; see
-`bench/registry.php`), so artifacts plus opcache are the production path.
+With opcache, artifacts let production load compiled component code directly.
+The recorded page-level comparison is in the
+[canonical performance snapshot](/guide/compiled#performance); run
+[`bench/registry.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/registry.php)
+on your own deployment before choosing a cache layout.
 
 ## Dependency-Free Exports (Optional)
 
 `pure compile --plain` writes a `*.plain.php` view: markup and native PHP that
-runs without purephp installed. Load it by extracting data into locals:
+runs without purephp installed. Load it by extracting data into locals. Keep the extraction in an isolated
+closure so its variables cannot overwrite a caller's locals:
 
 ```php
 <?php
 
-ob_start();
-extract($data, EXTR_SKIP);
-require 'views/index.plain.php';
-$html = (string)ob_get_clean();
+$render = static function (array $viewData): string {
+    extract($viewData, EXTR_SKIP);
+    ob_start();
+
+    try {
+        require 'views/index.plain.php';
+        $output = (string) ob_get_clean();
+    } catch (\Throwable $error) {
+        ob_end_clean();
+        throw $error;
+    }
+
+    return $output;
+};
+
+$html = $render($data);
 ```
+
+`EXTR_SKIP` does not overwrite an existing variable. A data key that collides
+with a local such as `viewData` is skipped; in the older top-level pattern,
+keys such as `data` or `html` can therefore collide with the loader itself.
+Inspect the generated view and map such keys explicitly (or use
+`EXTR_OVERWRITE` only inside a deliberately isolated, trusted scope).
 
 Reach for `--plain` when views must run without the library — a deployment that
 ships only `public/` and `views/`, or a template directory handed to someone else.
@@ -300,6 +359,28 @@ Value slots are `scalar|null|\Stringable`, condition slots are `mixed`, and
 child/list scopes become array shapes and iterables of them. Odd slot names are
 declared on the loader's `$data` array. Annotations are comments: they add no
 output bytes.
+
+## Trusted Artifacts and CSP
+
+A `*.pure.php` artifact is executable PHP generated from a source tree. Treat
+both the source and the generated artifact as trusted code: build them in a
+controlled CI job, restrict write access, verify the build output, and never
+serve an artifact as a public static file or accept one from an untrusted
+user. A plain view is also generated code even though it does not require the
+library at runtime.
+
+`Raw::of()`, `Slot::raw()` and component `Markup` children bypass escaping.
+They do not sanitize URLs, event handlers, styles or scripts. Validate those
+inputs at the application boundary and send an appropriate browser Content
+Security Policy for pages that intentionally contain active markup, for
+example:
+
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'
+```
+
+Adjust the policy to the application's trusted assets; CSP is defense in depth,
+not a replacement for validation.
 
 ## Next Steps
 

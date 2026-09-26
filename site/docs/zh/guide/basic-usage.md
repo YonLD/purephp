@@ -2,6 +2,9 @@
 
 **前置**：[快速开始](/zh/guide/getting-started)；**本页**：标签 API——创建元素、设置属性与即时渲染。
 
+示例假设应用已经加载 Composer 的 `vendor/autoload.php`；请按需导入所需的
+`Pure\HTML`、`Pure\SVG` 或 `Pure\Core` 符号。
+
 ::: tip 标签 API 与编译渲染
 本页介绍用于代码片段、原型和调试的标签 API；以此方式构建的树通过 `render()` / `print()`
 即时渲染。生产页面应改为编译 Shape——参见[编译渲染](/zh/guide/compiled)。
@@ -63,6 +66,8 @@ $tag = 'my-element';
 HTML::{$tag}('Content')->class('dynamic')->print();
 ```
 
+动态标签名必须来自固定白名单。渲染器会原样写入标签名，不会自动使不可信名称变得安全。
+
 ### 2. 设置属性
 
 使用链式调用设置元素属性：
@@ -111,8 +116,10 @@ $custom = HTML::myCustomTag('Custom content')->data_component('special');
 
 ### 1. 字符串内容 vs 原始内容
 
-字符串子节点一律转义，因此对用户输入是安全的，也不会丢数据：`2<3`、`a<b`
-这类比较文本会原样保留。形似标签的字符串会作为文本显示，而不会被解析：
+字符串子节点与普通属性值会按 HTML 语法转义，因此字符串不会被解析成新标签，也不会用引号
+突破属性边界；`2<3`、`a<b` 这类比较文本会保持可见。但这不是完整的 URL 或脚本策略：
+`href`/`src` 协议、事件属性、`style` 与动态标签名仍需校验，或由 Content Security Policy
+限制。
 
 ```php
 <?php
@@ -130,16 +137,20 @@ div(Raw::of('<p>This is preserved</p>'))->print();
 // 输出: <div><p>This is preserved</p></div>
 ```
 
+形似标签的字符串会作为文本显示，而不会被解析。这里的边界是语法层面的：它不会校验
+`javascript:` 这类 URL、事件属性，也不能让 `Raw::of()` 变得安全。
+
 **为什么这很重要：**
-- **安全性**：转义消除了用户输入中的 XSS
-- **不丢数据**：只是看起来像标记的文本会被完整保留
-- **明确性**：输出标记必须显式使用 Raw::of()
+- **语法安全**：普通文本和属性不会意外创建标记
+- **不丢数据**：只是看起来像标记的文本会完整保留
+- **明确性**：输出标记必须显式使用 `Raw::of()`
+- **纵深防御**：校验 URL 协议与活动属性，限制动态标签名，并使用 CSP
 
 **何时使用 Raw::of()：**
-- 包含预格式化的 HTML/XML 内容
-- 嵌入模板或外部内容
+- 包含你控制的预格式化 HTML/XML
+- 嵌入模板或经过来源校验的外部文档
 - 处理可信的 HTML/XML 字符串
-- 包含 JavaScript 或 CSS 代码块
+- 只有在文档 CSP 与信任模型允许时，才包含 JavaScript 或 CSS
 
 ### 2. className 别名
 
@@ -273,6 +284,10 @@ svg(
 )->width('100')->height('100')->print();
 ```
 
+SVG 被视为片段，不会自动添加 `xmlns` 属性。独立 `.svg` 文件请显式调用
+`->xmlns('http://www.w3.org/2000/svg')`；`save()` 仍会补上 XML 声明，除非传入自定义
+声明。
+
 ## 条件渲染
 
 使用 PHP 的条件语句进行条件渲染：
@@ -289,7 +304,7 @@ div(
 )->class('message')->print();
 ```
 
-在编译渲染中，条件会成为一个 `Slot::if()` 占位符，各分支则是 Shape。诸如 `Slot::value()` 这类 Slot 用于代表在渲染时绑定的值：
+在编译渲染中，条件会成为一个 `Slot::if()` 占位符，各分支则是 Shape。诸如 `Slot::value()` 这类 Slot 用于表示渲染时绑定的值：
 
 ```php
 <?php
@@ -336,7 +351,7 @@ ul(
 )->class('fruits')->print();
 ```
 
-在编译渲染中，列表是 `Slot::each()` Slot：条目 Shape 会为所绑定可迭代对象的每个元素渲染，`Slot::value()` 标记要绑定的值：
+在编译渲染中，列表是 `Slot::each()` Slot：条目 Shape 会为所绑定可迭代对象的每个元素渲染一次，`Slot::value()` 标记要绑定的值：
 
 ```php
 <?php
@@ -402,7 +417,7 @@ div('Content')
 
 ## 下一步
 
-- [基本概念](/zh/guide/concepts) - Tag、Shape、Slot 与组件
+- [核心概念](/zh/guide/concepts) - Tag、Shape、Slot 与组件
 - [Props 与 Slot](/zh/guide/props) - Slot 类型与数据绑定参考
 - [组件](/zh/guide/components) - Component 是 Shape 的包装与高级用法
 - [编译渲染](/zh/guide/compiled) - 组件模板如何编译

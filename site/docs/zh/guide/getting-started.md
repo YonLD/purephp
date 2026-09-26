@@ -1,10 +1,10 @@
 # 快速开始
 
-**前置**：无；**本页**：安装 PurePHP，跑通第一个组件。
+**前置**：PHP 8.1+、Composer；**本页**：安装 PurePHP，直接运行组件，并把同一组件接入真实应用入口。
 
-本指南帮助你安装 PurePHP 并创建第一个应用：一个**组件**——一个文件里放调用函数与一棵
-不含数据的模板，动态值是 **Slot** 占位符，类型化契约写在 `prepare()` 钩子里。PurePHP 中
-一切数据驱动的输出都用这种方式构建；代码片段也可以像下面的安装验证那样即时渲染。
+本指南带你走一条最小但完整的路径：安装包，先渲染一次标签树，再定义一个类型化组件，
+最后从应用入口调用它。组件是一个单元，包含调用函数和数据无关的模板；`Slot` 占位符通过类型化
+的 `prepare()` 钩子接收调用时传入的值。
 
 ## 环境要求
 
@@ -13,9 +13,9 @@
 
 ## 安装
 
-### 使用 Composer
+### 安装包
 
-在你的项目目录中运行以下命令：
+在项目根目录运行：
 
 ```bash
 composer require yonld/purephp
@@ -23,10 +23,12 @@ composer require yonld/purephp
 
 ### 验证安装
 
-创建一个简单的测试文件 `test.php`：
+在项目根目录创建 `test.php`：
 
 ```php [test.php]
 <?php
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -34,36 +36,41 @@ use function Pure\HTML\{div, h1, p};
 
 div(
     h1('PurePHP Installation Successful'),
-    p('Congratulations! PurePHP is correctly installed.')
+    p('The package and Composer autoloader are working.')
 )->print();
 ```
 
-运行测试文件：
+运行：
 
 ```bash
 php test.php
 ```
 
-如果看到 HTML 输出，说明安装成功。注意这里使用的是即时渲染——它适合快速检查；下面的应用
-以组件渲染。
+输出是一个 HTML 片段。这个即时渲染 API 适合做第一次检查；下面的应用会使用组件和前端入口。
 
 ## 创建第一个应用
 
-### 1. 创建项目目录
+### 1. 创建项目
 
 ```bash
 mkdir my-purephp-app
 cd my-purephp-app
 composer require yonld/purephp
+mkdir -p components public
 ```
 
-### 2. 创建第一个组件
+请保持 `composer.json`、`vendor/`、`components/` 和 `public/` 这个目录布局。下面的路径都基于它。
 
-创建 `components/Card.cmp.php`。模板是一棵不含数据的树：动态值是 `Slot` 占位符，由
-`prepare()` 钩子的类型化 props 绑定：
+### 2. 定义组件
+
+创建 `components/Card.cmp.php`：
 
 ```php [components/Card.cmp.php]
 <?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Pure\Component\Call;
 use Pure\Core\Slot;
@@ -76,56 +83,91 @@ function Card(mixed ...$children): Call
     return component(__FUNCTION__, ...$children);
 }
 
-register(Card(...),
+register(
+    Card(...),
     factory: static fn () => div(
         h2(Slot::value('title')),
         p(Slot::value('content'))
     )->class('card'),
-    prepare: static function (string $title, string $content): array {
-        return ['title' => $title, 'content' => $content];
-    }
+    prepare: static fn (string $title, string $content): array => [
+        'title' => $title,
+        'content' => $content,
+    ],
 );
 
-echo Card()->title('Title')->content('Content');
+if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
+    echo Card()->title('Title')->content('Content');
+}
 ```
 
-- `Slot::value('title')` 是占位符：渲染时从同名 prop 取值，转义后填入该位置；
-- `register(Card(...))` 从调用函数派生名字与文件、只惰性保存工厂，不构建任何东西；
-- `prepare()` 是类型化 prop 契约：PHP 强制参数类型，返回的数组绑定模板。
+`Slot::value()` 标记一个文本位置。`prepare()` 的参数就是链式调用接受的类型化 props，
+返回的数组会绑定到模板。这个文件可以被应用 `require`：CLI 守卫只会在直接执行该文件时运行，
+因此直接运行 smoke test 和前端入口可以共用同一个单元。
 
-### 3. 运行应用
+### 3. 直接运行组件
+
+把单元作为独立脚本运行：
 
 ```bash
 php components/Card.cmp.php
 ```
 
-输出：
+预期输出：
 
 ```html
 <div class="card"><h2>Title</h2><p>Content</p></div>
 ```
 
-真实应用中单元放在自己的文件里，控制器 `require` 它并用请求数据调用组件——见
-[组件](/zh/guide/components)。
+这是组件 smoke test，不是完整 HTML 文档。它验证了 autoload、注册、prop 契约和渲染器可以一起工作。
 
-### 4. 下一步：走向生产
+### 4. 添加真实应用入口
 
-上面的写法每次都会重新构建模板，适合学习与试验。生产环境还需要三件事：
+创建 `public/index.php`：
 
-- **磁盘缓存与预编译产物**——`Compile::cachePath()` 与 `pure compile`，见
-  [产物与部署](/zh/guide/artifacts)；
-- **开发期 guard**——报告每请求重建、拼错的 binding 等问题，见
-  [编译渲染](/zh/guide/compiled#缓存)；
-- **静态契约检查**——`pure check` 在 CI 中校验 props 与 Slot，见
-  [契约检查](/zh/guide/artifacts#契约检查)。
+```php [public/index.php]
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../components/Card.cmp.php';
+
+use function Pure\HTML\{body, head, html, meta, title};
+use function Pure\Utils\renderHTML;
+
+$title = is_string($_GET['title'] ?? null) ? trim($_GET['title']) : 'Title';
+$content = is_string($_GET['content'] ?? null) ? trim($_GET['content']) : 'Content';
+
+echo renderHTML(
+    html(
+        head(
+            meta()->charset('utf-8'),
+            title('Card')
+        ),
+        body(Card()->title($title)->content($content))
+    )
+);
+```
+
+入口负责提供请求数据、调用组件并补上文档外壳。在项目根目录启动 PHP 开发服务器：
+
+```bash
+php -S 127.0.0.1:8000 -t public public/index.php
+```
+
+打开 `http://127.0.0.1:8000/?title=Hello&content=From+the+entry+point`。
+组件仍然是同一个单元，变化的只有调用方和文档外壳。
 
 ## 下一步
 
-按顺序学习：
+按这个顺序学习：
 
-- [基本用法](/zh/guide/basic-usage) - 标签 API：片段、原型与调试
-- [基本概念](/zh/guide/concepts) - Tag、Shape、Slot 与组件
-- [Props 与 Slot](/zh/guide/props) - Slot 类型与数据绑定参考
-- [组件](/zh/guide/components) - 组合、prop 契约与页面
-- [编译渲染](/zh/guide/compiled) - 组件模板如何编译
-- [产物与部署](/zh/guide/artifacts) - `pure compile` 产物与生产部署
+1. [基本用法](/zh/guide/basic-usage)——学习标签 API 和片段渲染。
+2. [核心概念](/zh/guide/concepts)——理解标签树、Shape、Slot 与组件。
+3. [组件](/zh/guide/components)——组合单元并定义页面级 prop 契约。
+4. [HTMX](/zh/guide/htmx)——用 HTML fragment 实现服务端交互。
+5. [Tailwind CSS](/zh/guide/tailwindcss)——用锁定版本的 CSS 构建为组件添加样式。
+6. [编译渲染](/zh/guide/compiled)与[产物与部署](/zh/guide/artifacts)——加入缓存、产物和 CI 检查。
+
+生产环境应保持前端入口轻薄，在边界验证请求数据，并使用 `pure check` 以及
+[产物与部署](/zh/guide/artifacts#契约检查)中的部署步骤。

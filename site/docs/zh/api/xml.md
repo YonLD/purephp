@@ -44,6 +44,13 @@ if ($result !== false) {
 }
 ```
 
+## 文档头
+
+### `documentHeader(): string`
+
+返回默认 XML 声明 `<?xml version="1.0"?>`。`save()` 默认使用它，除非显式传入
+header；`render()` 不会自动添加文档头。
+
 ## 示例
 
 ### 配置文件
@@ -86,11 +93,22 @@ function exportUsers(array $users): XML
     $userElements = [];
 
     foreach ($users as $userData) {
+        $addressElements = [];
+        foreach ($userData['addresses'] ?? [] as $address) {
+            $addressElements[] = XML::address(
+                XML::street($address['street']),
+                XML::city($address['city']),
+                XML::state($address['state']),
+                XML::zip($address['zip'])
+            )->type($address['type']);
+        }
+
         $userElements[] = XML::user(
             XML::name($userData['name']),
             XML::email($userData['email']),
             XML::role($userData['role']),
-            XML::created($userData['created_at'])
+            XML::created($userData['created_at']),
+            $addressElements === [] ? null : XML::addresses(...$addressElements)
         )->id($userData['id']);
     }
 
@@ -103,7 +121,16 @@ $users = [
         'name' => '张三',
         'email' => 'zhangsan@example.com',
         'role' => 'admin',
-        'created_at' => '2024-01-01'
+        'created_at' => '2024-01-01',
+        'addresses' => [
+            [
+                'type' => 'home',
+                'street' => '中山路 1 号',
+                'city' => '上海',
+                'state' => '上海',
+                'zip' => '200000'
+            ]
+        ]
     ]
 ];
 
@@ -145,13 +172,16 @@ $posts = [
         'title' => '第一篇文章',
         'url' => 'https://myblog.com/first-post',
         'description' => '这是我的第一篇博客文章',
-        'date' => '2024-01-01 12:00:00'
+        'date' => 'Mon, 01 Jan 2024 12:00:00 +0000'
     ]
 ];
 
 $rss = createRSSFeed($posts);
 $rss->save('feed.xml');
 ```
+
+RSS 的 `pubDate` 必须使用 RFC 2822 日期，示例采用了这种格式。XML 构建器会转义元素文本
+和属性值，但不会替你验证 feed 是否符合 RSS schema。
 
 ### SOAP 信封
 
@@ -160,22 +190,27 @@ $rss->save('feed.xml');
 
 use Pure\Core\XML;
 
-$soapEnvelope = XML::envelope(
-    XML::header(
-        XML::authentication(
+$soapNamespace = 'http://schemas.xmlsoap.org/soap/envelope/';
+$soapEnvelope = XML::{'soap:Envelope'}(
+    XML::{'soap:Header'}(
+        XML::{'soap:Authentication'}(
             XML::username('user'),
             XML::password('pass')
         )
     ),
-    XML::body(
-        XML::getUserRequest(
+    XML::{'soap:Body'}(
+        XML::{'soap:GetUserRequest'}(
             XML::userId('123')
         )
     )
-)->xmlns_soap('http://schemas.xmlsoap.org/soap/envelope/');
+)->setAttrs(['xmlns:soap' => $soapNamespace]);
 
 echo $soapEnvelope;
 ```
+
+PHP 方法名不能包含冒号，因此示例用动态静态方法语法创建带前缀的元素名。`setAttrs()`
+是公开方法，会保留 `xmlns:soap` 的拼写；`->xmlns_soap(...)` 会把下划线归一化为
+`xmlns-soap`，并不是 SOAP 命名空间。
 
 ### 大型文档
 

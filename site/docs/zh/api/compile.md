@@ -34,10 +34,11 @@ echo $shape([
 
 | 类 | 用途 |
 | --- | --- |
-| `Pure\Compile\Compile` | 门面：`shape()`、`cachePath()`、`clearCache()`、`flush()`、`guard()` |
-| `Pure\Compile\Shape` | 不含数据的树：`__invoke($data)`、`compile()`、`id()`、`print($data)`、`save($path, $data)` |
-| `Pure\Compile\Renderer` | 编译后的渲染器：`render($data)`、`save($path, $data, $header = '')`，以及只读属性 `source` / `id` / `slots`（`slots` 是编译时携带的根 Slot 清单） |
+| `Pure\Compile\Compile` | 门面：`shape(Tag $shape): Shape`、`cachePath(?string $dir): void`、`clearCache(): int`、`flush(): void`、`guard(bool $enabled = true): void` |
+| `Pure\Compile\Shape` | 不含数据的树：`__invoke(array $data): string`、`compile(): Renderer`、`id(): string`、`print(array $data): void`、`save(string $path, array $data, ?string $header = null): int|false` |
+| `Pure\Compile\Renderer` | 编译后的渲染器：`render(array $data): string`、`save(string $path, array $data, string $header = ''): int|false`，以及只读属性 `source`、`id`、`slots` |
 | `Pure\Core\Slot` | 占位符构造器（`value`、`raw`、`child`、`each`、`if`）与修饰符 |
+| `Pure\Compile\Template` | 标记模板构建器，供 `pure compile --list` 与 `pure check` 使用 |
 | `Pure\Core\MissingSlotException` | 必填 Slot 缺失时抛出，携带完整路径 |
 
 ## 组件单元
@@ -68,77 +69,82 @@ register(Card(...),
 );
 ```
 
-| 函数 | 行为 |
+| 函数或类型 | 行为 |
 | --- | --- |
 | `register(Closure $call, ?Closure $factory = null, bool $override = false, ?Closure $prepare = null): void` | 注册组件单元。把调用函数传进来——`register(Card(...), $factory)`——名字与文件从它派生。工厂必须惰性，可返回标签树或 `Shape`；`$prepare` 是链式调用可选的类型化 prop 契约（props→bindings 钩子） |
 | `component(string $name, mixed ...$children): Call` | 开始一次链式调用：props 像标签属性一样设置，返回值是 `Markup`，可像标签一样嵌套；`$name` 是已注册的名字或模板路径，单元自己的调用函数传 `__FUNCTION__` |
+| `Call::props(array $props): self` | 一次设置多个命名 prop；值遵循链式 setter 的规则。`Call` 应通过 `component()` 创建，不要直接调用其内部构造函数。 |
 
 链式调用按原样产出树，**不带文档头**；整份文档的文档头由调用方处理：
 标签树或组件调用交给 `Pure\Utils\renderHTML()` / `renderXML()`，或者自己拼接
 （`$root->documentHeader()`，或常量 `HTML::DOCUMENT_HEADER` /
 `XML::DOCUMENT_HEADER`）。
 
-需要自己持有或传递绑定器时，用 `Registry::component($source)`，它返回
-`Closure(array $data): string`，接受字符串键的数据数组。
-
 链式调用绑定 props：`Card($children)->title($title)` 每个 prop 对应一个 Slot，`null`
 表示不设置该 prop，children 绑定保留 Slot `children`（模板用 `Slot::raw('children')`）。
+`Call` 还提供 `props(array $props): self`，可一次设置一组命名 prop。后续传 `null` 不会清除
+之前已经保存的值，应在设置前决定最终值。通用组件 prop 会把 `false` 保存为数据，最终由
+模板 Slot 决定如何渲染；特殊的 `class()` 与 `style()` setter 仍使用标签式的合并规则。
+
 `Call` 与 `Raw` 都实现 `Pure\Core\Markup`：Markup 子节点原样输出、随树延迟渲染，其他
-子节点则冻结为文本并转义。组件调用不能出现在数据无关的 Shape 树里——请把它的 markup 放进
+子节点则冻结为文本并转义。组件调用不能出现在数据无关的 Shape 树里——请把它渲染出的标记放进
 raw Slot。
 
-传入字符串时视为注册名、`*.cmp.php` 单元路径或 `*.shape.php` 模板
-路径。同名注册到另一个文件、或同一文件注册另一个名字都会抛异常，除非传 `override: true`；
-一个单元文件只注册一个组件。名字与它单元文件的路径解析到同一个绑定器。
+应用代码的公共入口是 `register()` 与 `component()`。`Pure\Component\Registry` 明确标记为
+`@internal`；它内部的 binder 与缓存方法可能随实现变化，其签名不是应用兼容性承诺。`component()`
+接受注册名、`*.cmp.php` 单元路径或 `*.shape.php` 模板路径。同名注册到另一个文件、或同一
+文件注册另一个名字都会抛异常，除非传 `override: true`；一个单元文件只注册一个组件。名字
+与它单元文件的路径解析到同一个内部绑定器。
 
 对文件而言，相邻的 `*.pure.php` 产物存在且不早于单元/shape 文件时直接加载，生产环境因此
 跳过工厂调用与 Shape 树构建；否则调用工厂（每个编译 generation 一次）或编译 shape 文件
 （磁盘缓存仍然生效）。文件缺失、模板未返回标签树或 `Shape`、产物未返回 `Renderer` 都会抛出带文件名
-的 `RuntimeException`。用 `pure compile` 为所有 `*.shape.php` 与 `*.cmp.php` 构建产物，
-用 `pure compile --list` 打印发现的单元，用 `pure compile --check` 在 CI 中保证产物新鲜，
-用 `pure check` 在不写入任何文件的前提下校验组件契约（Slot vs. 绑定与参数类型）。
+的 `RuntimeException`。用 `pure compile` 为所有 `*.shape.php` 与 `*.cmp.php` 构建产物。`pure compile --list`
+会打印实际发现的类型：`name -> file (component)`、`file (shape)`，以及带 `#[Template]`
+的 `name -> file (template)`；它不会编译。`pure compile --check` 用于在 CI 中保持产物新鲜。
+`pure check` 校验组件契约（Slot vs. 绑定与参数类型），不写产物；但它会先 `require` 每个单元，
+再执行其 factory（如果存在）来构建 Shape。因此只对可信源码运行，并放在隔离的 CI 进程中。
 
 ## Shape 与数据
 
-Shape 就是普通标签树，只是把动态值替换为 `Slot` 占位符。Shape 里不能包含请求数据，并且必须
-**每进程只构建一次**——文件形式由 `Registry::component()` 的按名或按路径缓存保证，内联树
-放进调用函数内的 `static` 变量中，绝不能放在请求处理器里。
-标准 PHP-FPM 下 `static` 每个请求都会重置，因此请启用 `Compile::cachePath()`，让请求加载
-已编译的渲染器而不是重新生成。
+Shape 就是普通标签树，只是把动态值替换为 `Slot` 占位符。Shape 里不能包含请求数据，并且应当
+**每进程只构建一次**——文件形式由内部的按路径 binder 缓存复用，内联树则放进调用函数内的
+`static` 变量中，绝不能放在请求处理器里。标准 PHP-FPM 下 `static` 每个请求都会重置，因此请启用
+`Compile::cachePath()`，让请求加载已编译的渲染器而不是重新生成。
 
 子组件的标记就是普通字符串，因此要经 raw Slot 进入模板——直接作为字符串子节点会被转义成文本：
 
 ```php
 <?php
 
-$shape = Compile::shape(div(Slot::raw('header'), Slot::each('rows', $row))->class('page'));
-$shape(['header' => Header(), 'rows' => $rows]);
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{div, li};
+
+$row = Compile::shape(li(Slot::value('title')));
+$shape = Compile::shape(
+    div(Slot::raw('header'), Slot::each('rows', $row))->class('page')
+);
+$shape([
+    'header' => '<header>用户</header>',
+    'rows' => [['title' => 'Ada']],
+]);
 ```
 
 ## Slot 类型
 
-| 构造器 | 值 | 行为 |
-| --- | --- | --- |
-| `Slot::value($name)` | 可字符串化或 `null` | 位置决定语义：子节点位转字符串后转义（`null` 渲染为空内容，`true` 为 "1"）；属性位遵循 `setAttr()`（`true` 渲染 `name="name"`，`false`/`null` 省略该属性） |
-| `Slot::raw($name)` | 可字符串化值、`null`，或这类值的可迭代集合 | 原样输出，绝不转义；集合按顺序拼接 |
-| `Slot::child($name, $shape)` | 数组 | 作为 `$shape` 的嵌套数据作用域 |
-| `Slot::each($name, $shape)` | 数组的可迭代集合 | 为每个 item 渲染一次 `$shape` |
-| `Slot::if($name, $then, $else = null)` | 真值判断 | `$data[$name]` 为真值时渲染 `$then`，否则渲染 `$else`；键缺失视为 false，绝不抛异常 |
+Slot 构造器、值类型、位置相关语义与错误路径的唯一规范表在
+[Props 与 Slot](/zh/guide/props#slot-参考)。本页不重复该表，只保留 API 使用时最容易
+混淆的边界：
 
-修饰符：
-
-- `->required(false)`——允许 Slot 缺失。
-- `->default($value)`——键缺失时使用的回退值。
-- `Slot::if()` 会以 `LogicException` 拒绝这两个修饰符。
-- 嵌套作用域直接读取 `$data[$name]`，数据 Shape 由调用方在渲染前准备好。
-
-值 Slot 与 raw Slot 必须可字符串化：接受 `null`、标量和 `Stringable`（含 `Raw`）；其它对象
-抛出 `InvalidArgumentException`，错误信息中会指出完整 Slot 路径。
-`raw` Slot 额外接受这类值的可迭代集合并原样拼接；某个元素不可字符串化时，报错会带上下标，
-例如 `slot 'items[2]' must be stringable`。
-
-选择列表 Slot 看标记是否已渲染：`raw()` 直接拼接已渲染好的标记（传渲染好的字符串、单个
-`Raw` 或它们的列表），`each()` 则是数据驱动、逐项用自己的 shape 渲染。
+- `required(false)` 与 `default($value)` 会使值/raw Slot 可选，但必填值/raw Slot 在子节点/文本位
+  仍拒绝显式 `null`。属性位的 `Slot::value()` 遵循 `setAttr()`，会省略 `null`；raw 不能
+  用作属性值。对 `child` 与 `each`，回退值仍必须分别是数组与可迭代值；`default(null)`
+  不会把容器变成空容器。静态分析 docblock 仍可能为可选容器标出 `|null`，但运行时 accessor
+  仍会执行类型检查。
+- `Slot::value()` 会按位置转义文本与普通属性；`Slot::raw()` 会原样输出。转义不等于 URL
+  校验，也不能替代 Content Security Policy。
 
 ## 静态子树折叠
 
@@ -147,6 +153,11 @@ $shape(['header' => Header(), 'rows' => $rows]);
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
 
 $shape = Compile::shape(div(
     Slot::raw('header'),
@@ -160,18 +171,28 @@ $shape = Compile::shape(div(
 
 ## 结构指纹
 
-`Shape::id()` 是 Shape 结构的 sha1 指纹：标签名、属性名与属性值、Slot 种类与名称、默认值、
-嵌套 Shape 以及库缓存版本。它无需编译即可计算，并被用作磁盘渲染器缓存的键：生成的源码以它为
-键存放，因此结构任何一处不同的两个 Shape 不可能共用同一个缓存的渲染器。`*.pure.php` 产物把指纹
-记在头部注释里，而 `pure compile --check` 是通过把产物与现场生成的源码逐字节比对来识别过期的。
-它并不是 `component()`
-解析组件所依据的东西——那是注册名或单元文件——而且只有*数据*变化时它不会改变。真正用得上它
-的是那种为每个变体组装不同 Shape 的应用：指纹就是存放它们的记忆表的一个廉价而稳定的键：
+`Shape::id()` 是 Shape 结构的 SHA-1 指纹：标签名、属性名与属性值、Slot 种类与名称、默认值、
+嵌套 Shape、库缓存版本，以及运行时的 `PHP_MAJOR_VERSION.PHP_MINOR_VERSION`。它无需编译即可
+计算，并被用作磁盘渲染器缓存的键：生成的源码以它为键存放，因此结构或 PHP 次版本不同的两个
+Shape 不可能共用同一个缓存的渲染器。`*.pure.php` 产物把指纹记在头部注释里，而
+`pure compile --check` 通过把产物与现场生成的源码逐字节比对来识别过期的。它不是公共
+`component()` 解析组件的依据——那是注册名或单元文件——而且只有*数据*变化时它不会改变。
+由于 PHP 次版本参与盐值，构建产物与缓存时应使用生产环境的相同 PHP 次版本，不要跨次版本复制。
+真正用得上它的是为每个变体组装不同 Shape 的应用：在同一 PHP 次版本内，指纹是存放它们的
+廉价而确定的键：
 
 ```php
 <?php
 
-$shapes[$classList . '|' . $item->id()] ??= Compile::shape(...); // 模板从略
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
+
+$classList = 'card';
+$shapes = [];
+$variant = Compile::shape(div(Slot::value('label')));
+$shapes[$classList . '|' . $variant->id()] ??= $variant;
 ```
 
 ## 编译产物 API
@@ -179,6 +200,15 @@ $shapes[$classList . '|' . $item->id()] ??= Compile::shape(...); // 模板从略
 ```php
 <?php
 
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
+
+$shape = Compile::shape(div(Slot::value('title')));
+$data = ['title' => '用户'];
+$path = 'users.html';
+$header = '';
 $compiled = $shape->compile();
 
 $compiled->render($data);                    // 返回 string
@@ -186,6 +216,7 @@ $compiled->save($path, $data);               // 写入文件，返回写入的�
 $compiled->save($path, $data, $header);      // 在文件开头补上 $header
 $compiled->source;                           // 生成的 PHP 源码（预编译产物为空）
 $compiled->id;                               // 结构指纹（与 Shape::id() 相同）
+$compiled->slots;
 ```
 
 `Shape::save($path, $data)` 是面向用户的便捷方法：写出渲染结果，并补上根标签的文档声明
@@ -217,9 +248,10 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 - `Compile::flush()` 让内存中的渲染器失效（每个 Shape 在下次使用时重新编译）；它不会删除
   缓存文件。
 
-缓存目录必须是私有目录：归 PHP 运行用户所有、组与其他用户不可写（`cachePath()` 会以
-0700 创建缺失目录，并拒绝权限过松或属主不符的目录），且应位于 Web 根目录之外。不要把
-缓存目录直接指向 `/tmp` 这类共享位置。只有在想强制重新生成时才在部署之间删除它。
+`Compile::cachePath()` 会以 `0700` 创建缺失目录，并拒绝组或其他用户可写的权限；当 POSIX
+属主 API 可用时，也会拒绝属主不符的目录。该方法不会检查路径是否位于 Web 根目录之外，因此
+部署仍应把目录放在文档根目录之外，并使用专用 `0700`（或更严格）目录。不要把缓存目录直接
+指向 `/tmp` 这类共享位置。只有在想强制重新生成时才在部署之间删除它。
 
 ## 每请求守卫
 
@@ -229,7 +261,9 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 ```php
 <?php
 
-Compile::guard(true); // 或设置 PURE_COMPILE_GUARD=1
+use Pure\Compile\Compile;
+
+Compile::guard(true); // 或 PURE_COMPILE_GUARD=1
 ```
 
 - 当同一调用点在单个进程内第 20 次调用 `Compile::shape()` 时，会触发
@@ -260,22 +294,34 @@ Compile::guard(true); // 或设置 PURE_COMPILE_GUARD=1
 
 ## 性能
 
-`bench/compare.php` 量的是 604 元素页面上的各条路径，`examples/bootstrap/bench.php` 量的则是
-一个由组件函数组合起来的真实页面；实测行见 `bench/README.md`，[编译渲染指南](/zh/guide/compiled#性能)
-说明各项开销分别在什么时候占主导。绝对数值会随 PHP 版本、opcache 与 CPU 变化，因此对照之前
-请先自己跑一遍：
+[规范性能快照](/zh/guide/compiled#性能)是渲染器、产物、缓存与页面级开销的唯一实测参考，
+并注明对应基准 commit、机器与记录日期。绝对结果会随 PHP 版本、opcache 与 CPU 变化，因此
+对照前应使用[基准源码](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
+复现相关路径：
 
 ```bash
 php bench/compare.php
 php examples/bootstrap/bench.php
 ```
 
+## 可信标记与产物
+
+`Slot::raw()`、`Raw::of()` 以及组件的 `Markup` 子节点都会绕过输出转义。它们是信任边界，
+不是清理器：只传入由应用生成或审核过的标记，校验 URL 协议与事件/style 属性，并把动态标签名
+限制在白名单内。页面有意包含脚本、样式或其它活动内容时，仍必须配置浏览器 Content Security
+Policy。
+
+`*.pure.php` 是由可信源码树生成的可执行 PHP。请在 CI 中构建并验证产物，限制写入权限，不要
+把它作为公开静态文件提供，也不要接受不可信用户上传的产物。产物的转义契约不能使不可信源码或
+不可信的 `Raw` 标记变安全。
+
 ## 限制
 
 - 标签名不能依赖数据：一个 Shape 始终使用相同的标签。结构变化请用 `Slot::if()`，
   或者在渲染前规整数据。
-- Shape 只在 PHP 进程的生命周期内存在。长驻 worker（或 `opcache.preload`）下是每个
-  worker 一次；标准 PHP-FPM 下 Shape 树会在每个请求中重建、渲染器会被重新生成，反而比
-  `render()` 更慢。请启用 `cachePath()`，让请求加载生成的渲染器而不是重新生成。
+- Shape 只在 PHP 进程的生命周期内存在。长驻 worker 可以在请求之间复用它们；
+  `opcache.preload` 不会在请求之间保留它们的 static 状态。标准 PHP-FPM 下 Shape 树会在每个
+  请求中重建、渲染器会被重新生成，反而比 `render()` 更慢。请启用 `cachePath()`，让请求加载
+  生成的渲染器而不是重新生成。
 - 编译渲染拿编译成本换速度：为每进程只渲染一次的 Shape 做编译比 `render()` 更慢。请编译
   会被反复渲染的页面和组件。

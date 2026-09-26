@@ -5,9 +5,10 @@
 编译渲染把不含数据的 **Shape**——组件的模板——转换为扁平的 PHP 渲染器。静态标记在编译期只转义一次，并作为字面量字符串输出，因此渲染页面的开销仅比字符串拼接加上动态值转义略高——与编译型模板引擎持平。
 
 组件的工厂返回一棵带 `Slot` 占位符的裸标签树；注册表会把它包装成 `Shape`——对内联树，
-`Compile::shape()` 做的正是同一个包装。模板**每个进程只构建一次**——长驻 worker、预加载或
-CLI 进程，或任何在请求之间保留 PHP 状态的运行时。标准 PHP-FPM 下每个请求都是全新的，因此请启用磁盘缓存（见[缓存](#缓存)），
-或用预编译产物代替运行时编译（见[产物与部署](/zh/guide/artifacts)）。
+`Compile::shape()` 做的正是同一个包装。模板**每个进程只构建一次**——长驻 worker、CLI
+进程，或任何在请求之间保留 PHP 状态的运行时。`opcache.preload` 可以让代码常驻内存，但
+不会跨请求保留 static Shape 状态。标准 PHP-FPM 下每个请求都是全新的，因此请启用磁盘缓存
+（见[缓存](#缓存)），或用预编译产物代替运行时编译（见[产物与部署](/zh/guide/artifacts)）。
 
 ## Shape、Slot、Renderer
 
@@ -17,7 +18,7 @@ CLI 进程，或任何在请求之间保留 PHP 状态的运行时。标准 PHP-
 use Pure\Compile\Compile;
 use Pure\Core\Slot;
 
-use function Pure\HTML\{div, h1, li, ul};
+use function Pure\HTML\{div, h1, li, span, ul};
 
 // Shape 就是普通标签树，只是把数据换成 Slot 占位符。
 $item = Compile::shape(li(Slot::value('title')));
@@ -62,6 +63,11 @@ echo $root([
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{li, span};
 
 $item = Compile::shape(
     li(
@@ -117,6 +123,11 @@ register(Card(...),
 ```php
 <?php
 
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{li, ul};
+
 $row = Compile::shape(li(Slot::value('label')));
 
 $shape = Compile::shape(ul(Slot::each('rows', $row)));
@@ -142,11 +153,12 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 ```
 
 - `Compile::cachePath($dir)` 开启磁盘渲染器缓存；传 `null` 关闭（默认）。
-- 缓存文件以 `Shape::id()` 为内容寻址；Shape 变化会生成新文件。
+- 缓存文件以 `Shape::id()` 为内容寻址；Shape 或 PHP 次版本变化都会生成新文件。
 - 写入是原子的（临时文件 + 重命名），因此并发 worker 是安全的。
-- 缓存文件是普通 PHP，对 opcache 友好。目录必须是私有目录：归 PHP 运行用户所有、
-  组与其他用户不可写（缺失时以 0700 创建）、并位于 Web 根目录之外——`cachePath()`
-  会拒绝权限过松或属主不符的目录；不要把缓存目录直接指向 `/tmp` 这类共享位置。
+- 缓存文件是普通 PHP，对 opcache 友好。`cachePath()` 会以 `0700` 创建缺失目录，拒绝
+  组或其他用户可写的权限；当 POSIX 属主 API 可用时，也会拒绝属主不符的目录。它不会检查
+  路径是否位于 Web 根目录之外，因此请把缓存放在文档根目录之外的专用目录；不要直接指向
+  `/tmp` 这类共享位置。
 - `Compile::clearCache()` 会删除由本库写入的文件。
 - `Compile::flush()` 会使内存中的渲染器失效（在部署后的长驻 worker 中很有用）。
 
@@ -154,6 +166,8 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
 
 Compile::guard(true);           // 或设置 PURE_COMPILE_GUARD=1
 ```
@@ -171,26 +185,39 @@ Compile::guard(true);           // 或设置 PURE_COMPILE_GUARD=1
 
 ## 性能
 
-每个请求有两项开销：进程拿到一个渲染器要付的代价，以及用它渲染要付的代价。实测行见
-`bench/README.md`；绝对数值会随 PHP 版本、opcache 与 CPU 变化，所以先在自己的机器上跑一遍
-再与下表对照（PHP 8.1.34，单个 604 元素、200 行的页面，`php bench/compare.php`）。
+本节是整份文档唯一的规范性能实测参考。下表快照来自
+[commit `c9b33e3` 的 `bench/README.md`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/README.md#recorded-numbers)，
+基准源码也固定在[同一 commit](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)。
+记录使用 `bench/compare.php`，在 AMD Ryzen 5 7500F、Linux、PHP 8.4.24 CLI
+（NTS，opcache 8.4.24）上运行 200 行（约 604 个渲染元素）、3000 次迭代，记录日期为
+2026-09-16。
 
-| 路径 | 每次渲染耗时 | 端到端加速 |
-| --- | --- | --- |
-| 构建树 + `render()` | ~1.2 ms | 1× |
-| 仅渲染（复用同一棵树） | ~345 µs | 3.4× |
-| 编译 Shape + 数据 | ~180 µs | 6.6× |
-| 编译静态树（字面量） | < 1 µs | — |
+| 路径 | 无 opcache | Opcache | Opcache + JIT |
+| --- | ---: | ---: | ---: |
+| 构建树 + `Tag::render()` | 631.0 µs | 608.3 µs | 433.8 µs |
+| 编译 Shape + 数据 | 141.7 µs | 135.2 µs | 107.9 µs |
+| 仅渲染（复用树） | 224.2 µs | 212.4 µs | 163.5 µs |
+| 编译静态树（字面量） | 0.1 µs | 0.1 µs | 0.2 µs |
+| 端到端加速 | 4.5× | 4.5× | 4.0× |
 
-开启 opcache 后，构建树依然昂贵，而编译路径几乎不变，因此加速比落在 5.5×，开启 JIT 时为
-4.6×。预编译产物路径把构建从第二列里彻底移除：对单个页面 Shape，构建加编译约 2.9 ms，而
-require 它的产物只需 ~25–67 µs（`php bench/artifact.php --write && php bench/artifact.php`）。
+这些数字代表一次真实记录，不是对其它 CPU 或 PHP 构建的承诺。同一源码快照还记录了产物加载
+（`bench/artifact.php`）、渲染器缓存（`bench/cache.php`）、组件加载
+（`bench/registry.php`）与完整页面（`examples/bootstrap/bench.php`）。选择 worker、运行时缓存
+或预编译产物前，应在目标部署上运行相应脚本。
 
-一整个页面的开销取决于它如何组合。bootstrap 的 features 页面用组件函数拼正文，因此
-`examples/bootstrap/bench.php` 量的是真实页面而不是单个 Shape：标签树 ~340 µs/op，页面函数
-跑在它的产物之上 ~104 µs/op（2.8–3.3×），普通视图 ~20 µs/op。该基准的
-`skeleton artifact + bindings` 行渲染的是页面*模板*，组件标记已经绑定好了，所以它的
-~1.5 µs 是每个 Shape 的数值，而不是一次页面渲染。
+同一快照中的支撑数据：预编译产物首次 `require` 需 38–67 µs，热加载约 25 µs，每次渲染
+1.4–2.5 µs（`bench/artifact.php`）；渲染器缓存冷启动约 0.78 ms，热读取约 0.26 ms
+（`bench/cache.php`）；开启 opcache 后，22 个组件产物合计只需 10–14 µs 加载
+（`bench/registry.php`）；示例页面作为页面函数约 104 µs、作为 plain 视图约 20 µs
+（`examples/bootstrap/bench.php`）。校验内容比编译更贵：对每个单元做哈希约 7 µs/文件，
+读取产物头部约 4 µs，而用 opcache 加载产物约 0.5 µs。
+
+## 可信标记与部署
+
+`Slot::raw()` 与组件 `Markup` 子节点会原样输出，应只接收可信输入；请校验 URL 协议和活动
+属性，页面有意包含脚本或样式时使用浏览器 Content Security Policy。编译文本/值 Slot 的
+转义保护语法，但不是 URL 或用户标记的清理器。预编译的 `*.pure.php` 是可执行 PHP，应从
+可信源码构建并限制写入权限。
 
 ## 限制
 
@@ -202,11 +229,16 @@ require 它的产物只需 ~25–67 µs（`php bench/artifact.php --write && php
 
 ## 混合列表
 
-一个 Shape 只有一种结构，因此列表项需要不同标记时，在数据层分派：逐项调用合适的组件函数，
-把拼好的标记交给 raw Slot。
+一个 Shape 只有一种结构，因此列表项需要不同标记时，在数据层分派：在数据层构建每一项的
+标记，把拼好的结果交给 raw Slot。
 
 ```php
 <?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
 
 function Blocks(array $blocks): string
 {
@@ -214,8 +246,12 @@ function Blocks(array $blocks): string
 
     foreach ($blocks as $block) {
         $html .= $block['kind'] === 'link'
-            ? LinkBlock($block['value'], $block['href'])
-            : TextBlock($block['value']);
+            ? sprintf(
+                '<a href="%s">%s</a>',
+                htmlspecialchars($block['href'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8')
+            )
+            : htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8');
     }
 
     return $html;

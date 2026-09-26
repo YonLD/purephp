@@ -1,8 +1,8 @@
-# 基本概念
+# 核心概念
 
 **前置**：[快速开始](/zh/guide/getting-started)；**本页**：Tag 树、Shape、Slot、组件与数据作用域。
 
-本指南介绍 PurePHP 的核心概念：先讲标签树与 Slot，Shape 是组件渲染的不含数据的模板，
+本指南介绍 PurePHP 的核心概念：先讲标签树与 Slot，Shape 是组件渲染所用的不含数据的模板，
 而数据驱动输出的推荐方式——组件（Component）——放在本页靠后介绍。
 
 ## 选择路径
@@ -44,7 +44,7 @@ echo $element; // <div class="container"><h1>Title</h1><p>Content</p></div>
 ## Shape 与 Slot
 
 **Shape** 是同样的树，但*不含数据*：动态值被替换为 `Slot` 占位符。Shape 描述结构，数据稍后到达。
-组件的模板正是一棵 Shape——本节先单独展示这种形态，让 Slot 词汇自成一体，本页靠后的组件一节再把它包装成推荐的单元。
+组件的模板正是一棵 Shape——本节先单独展示这种形态，让 Slot 概念独立呈现，本页靠后的组件一节再把它包装成推荐的单元。
 
 ```php
 <?php
@@ -115,7 +115,7 @@ $list(['items' => [['title' => 'a'], ['title' => 'b']]]);
 ## 组件
 
 Component 是 Shape 的包装与高级用法：一个 `*.cmp.php` 单元把返回 `Pure\Component\Call`
-的调用函数、紧挨着它渲染的模板（一棵 Shape），以及放在 `prepare()` 钩子里的类型化 prop
+的调用函数、与调用函数相邻的模板（一棵 Shape），以及放在 `prepare()` 钩子里的类型化 prop
 契约放在一起。单元注册一个惰性工厂，因此 `pure compile` 可以预编译模板，而请求只加载产物：
 
 ```php [components/Card.cmp.php]
@@ -146,7 +146,7 @@ register(Card(...),
 echo Card()->title('Title')->content('Content');
 ```
 
-props 在调用上像标签属性一样链式设置，children 传给调用本身，`->render()`（或字符串转换）
+props 在调用上像标签属性一样链式设置，children 传给调用函数本身，`->render()`（或字符串转换）
 产出标记；`prepare()` 的参数就是类型化 prop 契约，PHP 会强制它们的类型。
 
 组合方式见[组件](/zh/guide/components)，缓存与每请求守卫见[编译渲染](/zh/guide/compiled)，
@@ -210,8 +210,44 @@ $user = Store::get('user');
 
 ## 条件与混合列表
 
-上文的主表覆盖日常 Slot。列表项需要不同标记时，在数据层分派：逐项调用合适的组件函数，
-把拼好的标记交给 raw Slot。完整示例见编译渲染指南的[混合列表](/zh/guide/compiled#混合列表)。
+上文的主表覆盖日常 Slot。列表项需要不同标记时，在数据层分派：在数据层构建每一项的标记，
+把拼好的结果交给 raw Slot。
+
+```php
+<?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\div;
+
+function Blocks(array $blocks): string
+{
+    $html = '';
+
+    foreach ($blocks as $block) {
+        $html .= $block['kind'] === 'link'
+            ? sprintf(
+                '<a href="%s">%s</a>',
+                htmlspecialchars($block['href'], ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8')
+            )
+            : htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8');
+    }
+
+    return $html;
+}
+
+$blocks = [
+    ['kind' => 'link', 'value' => '文档', 'href' => '/docs'],
+    ['kind' => 'text', 'value' => '你好'],
+];
+
+$shape = Compile::shape(div(Slot::raw('blocks')));
+$shape(['blocks' => Blocks($blocks)]);
+```
+
+完整示例见编译渲染指南的[混合列表](/zh/guide/compiled#混合列表)。
 
 ## 下一步
 

@@ -1,6 +1,6 @@
 # Raw 类
 
-`Pure\Core\Raw` 表示可信标记，会按原样输出，不会被转义。
+`Pure\Core\Raw` 表示可信标记，会按原样输出，不会被转义。它是信任边界，不是清理器。
 
 ## Core，而非组件层
 
@@ -95,6 +95,9 @@ echo $content;
 
 ### 包含外部内容
 
+只有在检查来源与完整性后，才把外部内容包装为 Raw。`Raw::of()` 不会清理 HTML、XML、
+URL、脚本或样式：
+
 ```php
 <?php
 
@@ -102,8 +105,10 @@ use Pure\Core\Raw;
 
 use function Pure\HTML\{div, h1};
 
-// 包含来自外部源的内容
 $externalHtml = file_get_contents('external-content.html');
+if ($externalHtml === false) {
+    throw new RuntimeException('无法加载外部内容。');
+}
 
 $page = div(
     h1('我的页面'),
@@ -183,7 +188,9 @@ echo $page;
 
 ## 安全考虑
 
-⚠️ **重要**：原始内容不会被转义，所以在使用用户提供的内容时要小心：
+⚠️ **重要**：原始内容不会被转义，也不会被清理。永远不要把用户输入、未校验的 URL 响应，
+或带事件/style 的片段传给 `Raw::of()`。转义保护的是普通文本和属性语法，不会校验
+`javascript:` URL、内联脚本、事件处理器、CSS 或动态标签名。
 
 ```php
 <?php
@@ -192,15 +199,14 @@ use Pure\Core\Raw;
 
 use function Pure\HTML\div;
 
-// ❌ 危险 - 永远不要对用户输入这样做
-$userInput = $_POST['content']; // 可能包含恶意脚本
+$userInput = $_POST['content'] ?? '';
 $dangerous = div(Raw::of($userInput));
-
-// ✅ 安全 - 字符串子节点会自动转义
-$userInput = $_POST['content'];
 $safe = div($userInput);
 
-// ✅ 安全 - 仅对可信内容使用 Raw
 $trustedHtml = '<strong>管理员消息</strong>';
 $safe = div(Raw::of($trustedHtml));
 ```
+
+第一棵树按设计是不安全的；第二棵会把值作为文本转义。第三棵只有在标记是经过审核的常量时才
+安全。请在应用边界校验活动输入；页面有意包含脚本或样式时，发送限制性的浏览器 Content
+Security Policy。

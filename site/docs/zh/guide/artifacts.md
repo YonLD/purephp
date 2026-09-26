@@ -28,11 +28,15 @@ $page->save(__DIR__ . '/out.html', ['title' => 'Users']);
 
 - `pure compile <路径>...` 接受文件与目录（递归查找），同时发现 `*.cmp.php` 单元与
   `*.shape.php` 模板，并跳过内容已最新的文件：shape 仍会被加载与编译（因此它引用的任何文件
-  发生变化都能被感知），但内容一致的文件会以 `unchanged:` 报告而不是重写。`--list` 不编译，
-  直接按 `name -> file (component|page)` 打印发现的单元。`pure compile --check` 不写入任何
+  发生变化都能被感知），但内容一致的文件会以 `unchanged:` 报告而不是重写。
+  `--list` 不编译，直接打印实际类型：`name -> file (component)`、
+  `file (shape)`，以及带 `#[Template]` 的 `name -> file (template)`。`pure compile --check` 不写入任何
   文件，当产物过期或缺失时以退出码 1 结束，适合放在 CI 步骤中。`--plain` 会额外写出下文的
   「无依赖视图」，`--check --plain` 同时校验两种形态。仓库中的示例都是 `*.cmp.php` 单元，
-  `vendor/bin/pure compile examples` 可一次编译全部。
+  `vendor/bin/pure compile examples` 可一次编译全部。典型输出是
+  `Card -> components/Card.cmp.php (component)`；独立模板会显示为
+  `views/page.shape.php (shape)`，带 `#[Template]` 的构建器会显示为
+  `pageShape -> views/page.cmp.php (template)`。
 - 产物的渲染结果与运行时编译器完全一致（测试按逐字节比对断言），并且读起来就像模板：
   标记仍是标记，动态值写成 `<?= ... ?>`，控制流使用替代语法，闭包只定义一次并导入类的短名。
   HTML 片段承载的是精确的渲染字节，因此不会被重新缩进。产物的 `Renderer::$source`
@@ -43,6 +47,9 @@ $page->save(__DIR__ . '/out.html', ['title' => 'Users']);
   仅当 Slot 路径与键名不同时才出现 `path:`。
 - 产物还携带根作用域 Slot 清单（`Renderer::$slots`），因此开发守卫无需重建 Shape 树就能报告
   模板从未读取的 binding。
+
+下面是生成文件的示意源码，不是应用 API。`TemplateRuntime` 的 import 由 `pure compile`
+生成；应用代码仍应调用 `Renderer::render()`：
 
 ```php
 <?php
@@ -69,6 +76,15 @@ $pureBody = static function (array $v): string {
 ```php
 <?php
 
+use Pure\Component\Binds;
+use Pure\Component\Call;
+use Pure\Core\Slot;
+
+use function Pure\Component\{component, register};
+use function Pure\HTML\{body, head, html, title};
+use function Pure\SVG\{svg, svgUse};
+use function Pure\Utils\renderHTML;
+
 // components/Icon.cmp.php：类型化 prop 契约在 prepare() 钩子里，背后是预编译模板
 
 function Icon(mixed ...$children): Call
@@ -93,8 +109,13 @@ function Features(mixed ...$children): Call
 }
 
 register(Features(...),
-    factory: static fn () => html(/* ... */),
-    prepare: static fn (): array => [
+    factory: static fn () =>
+        html(
+            head(title(Slot::value('title'))),
+            body(Slot::raw('content'))
+        ),
+    prepare: #[Binds('title', 'content')] static fn (): array => [
+        // 页面决定有哪些区块；每个区块取自己的记录。
         'title' => FeaturesService::pageTitle(),
         'content' => FeaturesBody(),
     ]
@@ -107,21 +128,24 @@ function featuresPage(): string
 }
 ```
 
-每个区块都从 service 层（bootstrap 示例中的 `FeaturesService`）取自己的记录，因此页面函数
-不携带页面数据，给组件加一个 prop 也永远不需要改页面。
+每个区块都从 service 层取自己的记录（如上面的 `FeaturesService::pageTitle()` 和
+`FeaturesBody()`），因此页面函数不携带页面数据，给组件加一个 prop 也永远不需要改页面。
 
 子组件渲染出的字符串直接进入 raw Slot——无需 `(string)` 强制转换——它们组成的列表按顺序拼接。
 
-`component()`（以及它背后的绑定器）会在单元或 shape 文件旁边存在产物、且产物不早于源
-文件时直接加载产物，否则调用注册的工厂（每个编译 generation 一次）或编译 shape 文件
-（磁盘缓存仍然生效）。它只产出片段——要文档声明就由调用方自己拼接。
+公共 `component()` 辅助函数会在单元或 shape 文件旁边存在产物、且产物不早于源文件时直接
+加载产物，否则调用注册的工厂（每个编译 generation 一次）或编译 shape 文件（磁盘缓存仍然
+生效）。它只产出片段——要文档声明就由调用方自己拼接。底层的
+`Registry::component()` binder 属于内部细节，应用代码不应依赖其签名。
 
 bootstrap 示例的 `PlainFeaturesController` 把同一份 bindings 交给示例自带的 `plain()` 助手（一个应用
 函数：它 require 视图文件并展开数据）；单一入口
 `public/index.php` 为每个页面同时提供两种形态：`/pure/features`、`/pure/pricing` 走页面函数，
 `/plain/features`、`/plain/pricing` 走普通视图，开发时可以对照。
 
-- 请使用与生产环境相同的 PHP 次版本号构建产物：指纹与产物头部都嵌入了 PHP 版本（与缓存一致）。
+- 请使用与生产环境相同的 PHP 次版本号构建产物：`Shape::id()` 的盐值包含
+  `PHP_MAJOR_VERSION.PHP_MINOR_VERSION`，产物头部也记录 PHP 版本；不要跨 PHP 次版本复制
+  产物或缓存。
 - 产物是构建输出：修改 Shape 后需要重新构建。加载时不会校验 Shape 树，因此请用 `--check`
   发现过期产物。
 - 产物还带有它的 `Compile::CACHE_VERSION`：加载由库的其他版本写出的产物时，抛出的是带
@@ -131,33 +155,35 @@ bootstrap 示例的 `PlainFeaturesController` 把同一份 bindings 交给示例
   静默输出过期内容，直到 `pure compile --check --plain` 发现不一致。
 - 新鲜度用 `filemtime()` 比较，它的整秒粒度意味着与单元在同一秒写入的产物就已经可用。
   这是有意为之：tar、rsync 或 git checkout 造成的 `touch` 式时间偏移很常见，精确比较会丢弃
-  这些产物并逐请求重新编译。而对每个单元做内容哈希实测约每个文件 7 µs，相比之下开启
-  opcache 后 require 它的产物约 0.5 µs，所以它也算不上更便宜的守卫。
+  这些产物并逐请求重新编译。哈希与 require 的实测对照见
+  [规范性能快照](/zh/guide/compiled#性能)，命令和源码见
+  [基准仓库快照](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)。
 - 两个会写出同一个产物的源文件（`a.shape.php` 紧邻 `a.cmp.php`）会被 `pure compile` 一并
   拒绝并返回退出码 1，因此 `a.pure.php` 归属哪个模板不会由发现顺序决定。
 - 加载 Shape 文件时产生的输出会被丢弃；`pure compile` 只输出构建信息。
 
 ## 契约检查
 
-`pure check` 静态校验每个单元的契约，让不匹配在 CI 中失败，而不是等到渲染时：
+`pure check` 校验每个单元的契约，让不匹配在 CI 中失败，而不是等到渲染时。它不是沙箱：
+为了检查单元，它会 `require` 该文件，并在存在时执行注册的 factory 来构建 Shape。只应在隔离的 CI
+进程中对可信源码运行；它不会写入产物。
 
 ```bash
 vendor/bin/pure check src
 ```
 
-- 模板读取的 **Slot** 与调用点设置的 **props**：设置了一个模板不读取的 prop 是错误（并给出
+- 模板读取的 **Slot** 与单元返回的 **bindings**：模板不读取的 binding 是错误（并给出
   `did you mean` 建议），必填 Slot 没有被绑定也是错误。`prepare()` 钩子把 props 变成绑定：
-  它返回字面量数组时，这些键会被解析；返回的是 `...bindings()` 助手的结果、读不出字面量
-  时，用 `#[Binds(...)]` 声明键名，运行时计算的绑定则报告为 `info`。
-- 组件函数的**参数类型**与 Slot 种类：列表 Slot 需要可迭代值、child 作用域需要数组、值 Slot 需要
-  可字符串化值、raw Slot 两者皆可。必填 Slot 对应的可空参数是警告（绑定 `null` 会抛出
-  `MissingSlotException`）；既未被函数使用、也不是模板 Slot 的参数同样是警告。
-- 没有组件函数的链式单元改查它的 **`prepare()` 闭包**：参数就是 prop 契约，必须与 Slot
-  的名字和类型一致；它返回的字面量数组的键必须是模板读取的 Slot（运行时计算出的返回值
-  报告为 `info`）。
+  返回字面量数组时，这些键会被解析；返回的是 `...bindings()` 助手结果或运行时计算值时，
+  用 `#[Binds(...)]` 声明键名，否则将报告为 `info`。
+- `prepare()` 钩子的**参数类型**与 Slot 种类：列表 Slot 需要可迭代值、child 作用域需要数组、
+  值 Slot 需要可字符串化值、raw Slot 两者皆可。必填 Slot 对应的可空参数是警告（绑定 `null`
+  会抛出 `MissingSlotException`）；既未被函数使用、也不是模板 Slot 的参数同样是警告。
+- **没有 `prepare()` 的单元**改为检查调用点：props 就是模板 Slot，setter 必须匹配；旁边的
+  函数若不返回 `Pure\Component\Call` 会报错。
 - **声明注解**用来表达签名说不出的信息。`#[Prop]` 带 `slot`（该 prop 绑定的 Slot 名）、
   `item`（列表 prop 的每一项在 `Slot::each` 的 item Shape 里填的 Slot）、`required`（调用方
-  义务）与 `deprecated`（迁移提示）；`#[Trusted]` 标记携带 markup 的 prop，它必须绑定
+  义务）与 `deprecated`（迁移提示）；`#[Trusted]` 标记携带已渲染标记的 prop，它必须绑定
   raw Slot，且调用方传入的不是 `Pure\Core\Markup` 时开发守卫会告警；`#[Binds]` 用在
   hook 或 `...bindings()` 辅助函数上，在字面量数组读不出来时声明返回的键。声明会与签名和
   模板比对；当 `prepare()` 返回的不是一个可读的字面量数组时，模板的必填 Slot 改为与声明
@@ -178,33 +204,55 @@ vendor/bin/pure check src
 工厂、不建树、不算指纹），过期或缺失则调用注册的工厂或编译 shape 文件。CI 中用
 `pure compile --check` 可以发现过期产物（退出码 1）。
 
+`Compile::cachePath()` 会以 `0700` 创建缺失目录，并拒绝组或其它用户可写的权限；当 POSIX
+属主 API 可用时也会拒绝属主不符的目录，但不会检查路径是否位于 Web 根目录之外。请把缓存放在
+文档根目录之外的专用目录，并使用严格的权限。
+
 开启哪些取决于部署形态：
 
 - **PHP-FPM**——开启 `Compile::cachePath()` 并构建产物。没有产物时，每个请求都要为该组件
-  重建 Shape 树、遍历指纹，然后才渲染：仅 features 页面的骨架编译就要 ~780 µs（冷启动）、
-  ~260 µs（磁盘缓存命中，`bench/cache.php`）。产物把这段降为一个 `require`，而在开启
-  opcache 时一次 require 远低于 1 µs。
+  重建 Shape 树、遍历指纹，然后才渲染。产物会把这部分工作替换为一次 `require`；实测对照见
+  [规范性能快照](/zh/guide/compiled#性能)与
+  [`bench/cache.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/cache.php)。
 - **长驻 worker**（RoadRunner、Swoole、FrankenPHP）——开启 `Compile::cachePath()` 并保留
-  绑定器的路径缓存（`Registry::component()` 内置，内联树用 `static $render`）；renderer 常驻内存，产物可选。
+  内部绑定器的路径缓存（内联树用 `static $render`）；renderer 常驻内存，产物可选。
 - **`opcache.preload`**——preload 只把代码常驻内存，不会让 static 变量跨请求保留（PHP preload
   RFC 已明确说明），因此不能替代上面两种做法。
 
-开启 opcache 后，一页里每个组件产物的 require 约 0.5µs（22 个产物约 10µs，见
-`bench/registry.php`），因此「产物 + opcache」就是生产路径。
+开启 opcache 后，生产环境可以直接加载已编译的组件代码。页面级实测对照见
+[规范性能快照](/zh/guide/compiled#性能)；选择缓存布局前，请在实际部署中运行
+[`bench/registry.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/registry.php)
+脚本。
 
 ## 无依赖导出（可选）
 
 `pure compile --plain` 会在产物旁边额外写出 `*.plain.php`：只有标记与原生 PHP，
-渲染时不需要安装 purephp。加载方式就是常规的视图约定——把数据数组展开成局部变量：
+渲染时不需要安装 purephp。加载时把数据展开成局部变量，并把展开操作放进隔离闭包，避免覆盖调用方的局部变量：
 
 ```php
 <?php
 
-ob_start();
-extract($data, EXTR_SKIP);
-require 'views/index.plain.php';
-$html = (string)ob_get_clean();
+$render = static function (array $viewData): string {
+    extract($viewData, EXTR_SKIP);
+    ob_start();
+
+    try {
+        require 'views/index.plain.php';
+        $output = (string) ob_get_clean();
+    } catch (\Throwable $error) {
+        ob_end_clean();
+        throw $error;
+    }
+
+    return $output;
+};
+
+$html = $render($data);
 ```
+
+`EXTR_SKIP` 不会覆盖已经存在的变量；如果数据键与 `viewData` 等局部变量同名，该键会被
+跳过。在旧式的顶层加载写法中，`data`、`html` 等键可能与加载器自身冲突。请检查生成的
+视图并显式映射这些键（只有在意图明确的可信隔离作用域中才使用 `EXTR_OVERWRITE`）。
 
 需要让视图脱离库运行时才用 `--plain`：例如部署只带 `public/` 与 `views/`，
 或把模板目录交给其他人。常规数据下无依赖视图逐字节等于产物，并且仅当其根是文档根
@@ -241,6 +289,22 @@ array shape 及它们的 iterable；特殊 Slot 名声明在加载器的 `$data`
 生成的读取会回退到 `null`，注解如实反映这一点。
 
 视图是 include，请在生产开启 opcache：关闭时每次渲染都会重新解析文件。
+
+## 可信产物与 CSP
+
+`*.pure.php` 是由源码树生成的可执行 PHP。源码与生成产物都应视为可信代码：在受控 CI 中
+构建并验证产物，限制写入权限，不要把产物作为公开静态文件提供，也不要接受不可信用户上传的
+产物。无依赖视图虽然运行时不依赖库，但同样属于生成代码。
+
+`Raw::of()`、`Slot::raw()` 与组件 `Markup` 子节点都会绕过转义，不会替你校验 URL、事件处理器、
+样式或脚本。请在应用边界校验这些输入；页面有意包含活动标记时，还应发送合适的浏览器 Content
+Security Policy，例如：
+
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'
+```
+
+请按应用可信资产调整策略；CSP 是纵深防御，不能替代输入校验。
 
 ## 下一步
 

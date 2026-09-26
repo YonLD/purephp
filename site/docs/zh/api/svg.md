@@ -1,6 +1,7 @@
 # SVG 类
 
-`Pure\Core\SVG` 继承自 XML 类，专门用于 SVG 标签。
+`Pure\Core\SVG` 继承 `Pure\Core\XML`，用于 SVG 标签。它会为选定的无子节点元素
+选择自闭合渲染风格，但不会自动添加 SVG 命名空间。
 
 ## 创建 SVG 元素
 
@@ -24,6 +25,27 @@ use Pure\Core\SVG;
 // 任何标签名，包括自定义元素
 $custom = SVG::customShape(SVG::innerPath('M10,10 L90,90'));
 ```
+
+## 命名空间与文档根
+
+SVG 通常作为内联片段使用，因此 `isDocumentRoot()` 返回 `false`，`render()` 只输出元素。
+类名不会自动推导 `xmlns` 属性。写独立 SVG 文件时请显式声明命名空间：
+
+```php
+<?php
+
+use function Pure\SVG\{path, svg};
+
+$icon = svg(
+    path('M3 12l2-2m0 0l7-7 7 7')
+)->xmlns('http://www.w3.org/2000/svg')->viewBox('0 0 24 24');
+
+$icon->save('icon.svg');
+```
+
+SVG 类的 `save()` 与 `documentHeader()` 仍会提供 XML 声明；需要不同文档头时，请显式传入
+header 参数。`renderXML()` 也会前置该声明，因此内联片段请使用 `render()`。命名空间属于
+文档契约而不是转义问题，应固定在模板中，不要从不可信数据读取。
 
 ## 自闭合标签
 
@@ -107,6 +129,8 @@ echo $shapes;
 
 ```php
 <?php
+
+use Pure\Core\SVG;
 
 use function Pure\SVG\{svg, path};
 
