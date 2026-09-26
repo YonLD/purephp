@@ -529,13 +529,13 @@ class ArtifactTest extends TestCase
 
         $missing = $this->runCommand($command, ['pure', 'compile', '--check', '--plain', $file]);
         $this->assertSame(1, $missing['code']);
-        $this->assertStringContainsString('missing: ' . $this->dir . '/flavours.plain.php', $missing['stdout']);
+        $this->assertStringContainsString('missing: ' . $this->dir . '/flavours.plain.php', $missing['stderr']);
 
         file_put_contents($this->dir . '/flavours.plain.php', "<?php\n// tampered\n");
 
         $stale = $this->runCommand($command, ['pure', 'compile', '--check', '--plain', $file]);
         $this->assertSame(1, $stale['code']);
-        $this->assertStringContainsString('stale: ' . $this->dir . '/flavours.plain.php', $stale['stdout']);
+        $this->assertStringContainsString('stale: ' . $this->dir . '/flavours.plain.php', $stale['stderr']);
     }
 
     public function testPlainViewsHandleChildAndEachSlots(): void
@@ -682,12 +682,58 @@ class ArtifactTest extends TestCase
         $command = new ArtifactCommand();
 
         $missing = $this->runCommand($command, ['pure', 'compile']);
-        $this->assertSame(1, $missing['code']);
+        $this->assertSame(2, $missing['code']);
         $this->assertStringContainsString('needs at least one file or directory', $missing['stderr']);
 
         $checked = $this->runCommand($command, ['pure', 'compile', '--plain', '--check']);
-        $this->assertSame(1, $checked['code']);
+        $this->assertSame(2, $checked['code']);
         $this->assertStringContainsString('Usage:', $checked['stderr']);
+    }
+
+    public function testHelpIsAvailableUnderEveryConventionalName(): void
+    {
+        $command = new ArtifactCommand();
+
+        foreach ([['pure', 'help'], ['pure', '--help'], ['pure', '-h']] as $argv) {
+            $result = $this->runCommand($command, $argv);
+
+            $this->assertSame(0, $result['code'], implode(' ', $argv));
+            $this->assertStringContainsString('pure check <path>...', $result['stdout']);
+        }
+
+        // A bare `pure` is a request for the help, not a failure, so a user who
+        // runs it with no arguments gets the text on stdout and exit 0.
+        $bare = $this->runCommand($command, ['pure']);
+        $this->assertSame(0, $bare['code']);
+        $this->assertStringContainsString('pure compile <path>...', $bare['stdout']);
+        $this->assertSame('', $bare['stderr']);
+    }
+
+    public function testAnUnknownCommandOrOptionIsAUsageError(): void
+    {
+        $command = new ArtifactCommand();
+
+        $unknown = $this->runCommand($command, ['pure', 'nope']);
+        $this->assertSame(2, $unknown['code']);
+        $this->assertStringContainsString("unknown command 'nope'", $unknown['stderr']);
+        $this->assertStringContainsString('Exit codes:', $unknown['stderr']);
+
+        $option = $this->runCommand($command, ['pure', 'compile', '--nope']);
+        $this->assertSame(2, $option['code']);
+        $this->assertStringContainsString("unknown option '--nope'", $option['stderr']);
+        $this->assertStringContainsString('Exit codes:', $option['stderr']);
+    }
+
+    public function testEverythingAfterADoubleDashIsAPath(): void
+    {
+        $command = new ArtifactCommand();
+
+        $result = $this->runCommand($command, ['pure', 'compile', '--', '--not-an-option']);
+
+        // The path does not exist, which is a runtime failure rather than a
+        // usage error; what matters is that it was read as a path at all.
+        $this->assertSame(1, $result['code']);
+        $this->assertStringContainsString('does not exist', $result['stderr']);
     }
 
     public function testPlainPathsFollowTheShapeSuffix(): void
@@ -723,7 +769,7 @@ class ArtifactTest extends TestCase
 
         $missing = $this->runCommand($command, ['pure', 'compile', '--check', $file]);
         $this->assertSame(1, $missing['code']);
-        $this->assertStringContainsString('missing:', $missing['stdout']);
+        $this->assertStringContainsString('missing:', $missing['stderr']);
 
         $compiled = $this->runCommand($command, ['pure', 'compile', '--plain', $file]);
         $this->assertSame(0, $compiled['code']);
@@ -737,7 +783,7 @@ class ArtifactTest extends TestCase
 
         $stale = $this->runCommand($command, ['pure', 'compile', '--check', $file]);
         $this->assertSame(1, $stale['code']);
-        $this->assertStringContainsString('stale:', $stale['stdout']);
+        $this->assertStringContainsString('stale:', $stale['stderr']);
         $this->assertStringContainsString('need recompiling', $stale['stderr']);
     }
 
@@ -896,7 +942,7 @@ class ArtifactTest extends TestCase
 
         $stale = $this->runCommand($command, ['pure', 'compile', '--check', $file]);
         $this->assertSame(1, $stale['code']);
-        $this->assertStringContainsString('stale:', $stale['stdout']);
+        $this->assertStringContainsString('stale:', $stale['stderr']);
     }
 
     public function testUnitFilesNeedTheRegistry(): void
@@ -1062,8 +1108,9 @@ class ArtifactTest extends TestCase
         $this->assertStringContainsString('does not exist', $missing['stderr']);
 
         $usage = $this->runCommand($command, ['pure', 'compile', '--nope']);
-        $this->assertSame(1, $usage['code']);
+        $this->assertSame(2, $usage['code']);
         $this->assertStringContainsString("unknown option '--nope'", $usage['stderr']);
+        $this->assertStringContainsString('Exit codes:', $usage['stderr']);
     }
 
     public function testRendererSaveWritesAFragmentAndShapeSavePrependsTheRootsHeader(): void
@@ -1148,6 +1195,50 @@ class ArtifactTest extends TestCase
         exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($binary) . ' compile --check ' . escapeshellarg($file) . ' 2>&1', $check, $checkCode);
         $this->assertSame(0, $checkCode);
         $this->assertStringContainsString('up to date:', implode("\n", $check));
+    }
+
+    public function testCliBinaryRespondsToHelpAndReportsAUnitThatThrowsOnOneLine(): void
+    {
+        $binary = dirname(__DIR__) . '/bin/pure';
+        $run = function (string $arguments) use ($binary): array {
+            $pipes = [];
+            $process = proc_open(
+                escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($binary) . ' ' . $arguments,
+                [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                $pipes
+            );
+
+            $this->assertIsResource($process);
+            $stdout = (string)stream_get_contents($pipes[1]);
+            $stderr = (string)stream_get_contents($pipes[2]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+
+            return ['code' => proc_close($process), 'stdout' => $stdout, 'stderr' => $stderr];
+        };
+
+        // `help` reaches the same usage screen as `--help`, and it is a request
+        // for help rather than a failure: stdout, exit 0, nothing on stderr.
+        $help = $run('help');
+        $this->assertSame(0, $help['code']);
+        $this->assertStringContainsString('pure compile <path>...', $help['stdout']);
+        $this->assertSame('', $help['stderr']);
+
+        $bare = $run('');
+        $this->assertSame(0, $bare['code']);
+        $this->assertStringContainsString('pure compile <path>...', $bare['stdout']);
+        $this->assertSame('', $bare['stderr']);
+
+        // A unit that throws while loading is named and its reason reported,
+        // without a stack trace running through the internal classes. The
+        // binary's own catch only nets out a bug in the compiler itself, which
+        // no input reaches.
+        $broken = $this->shapeFile('broken.cmp.php', "<?php\n\nthrow new RuntimeException('unit exploded');\n");
+        $crash = $run('compile ' . escapeshellarg($broken));
+        $this->assertSame(1, $crash['code']);
+        $this->assertStringContainsString('unit exploded', $crash['stderr']);
+        $this->assertStringNotContainsString('Stack trace', $crash['stderr']);
+        $this->assertStringNotContainsString('ArtifactCompiler.php', $crash['stderr']);
     }
 
     /**

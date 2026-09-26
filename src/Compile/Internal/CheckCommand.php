@@ -62,8 +62,14 @@ final class CheckCommand
 
           --strict     exit 1 on warnings too
           -h, --help   show this help
+          --           treat every later argument as a path
 
         This is not `pure compile --check`, which reports stale artifacts.
+
+        Exit codes:
+          0  no error (and no warning under --strict)
+          1  the run found errors, or a file could not be read
+          2  the command line was wrong
 
         USAGE;
 
@@ -94,8 +100,21 @@ final class CheckCommand
         $arguments = array_slice($argv, 2);
         $paths = [];
         $strict = false;
+        $literal = false;
 
         foreach ($arguments as $argument) {
+            if ($literal) {
+                $paths[] = $argument;
+
+                continue;
+            }
+
+            if ($argument === '--') {
+                $literal = true;
+
+                continue;
+            }
+
             if ($argument === '--strict') {
                 $strict = true;
 
@@ -109,18 +128,18 @@ final class CheckCommand
             }
 
             if (str_starts_with($argument, '-')) {
-                fwrite($stderr, "pure: unknown option '{$argument}'\n\n" . self::USAGE);
+                fwrite($stderr, "pure: unknown option '{$argument}'.\n\n" . self::USAGE);
 
-                return 1;
+                return 2;
             }
 
             $paths[] = $argument;
         }
 
         if ($paths === []) {
-            fwrite($stderr, "pure: check needs at least one file or directory\n\n" . self::USAGE);
+            fwrite($stderr, "pure: check needs at least one file or directory.\n\n" . self::USAGE);
 
-            return 1;
+            return 2;
         }
 
         $files = [];
@@ -140,6 +159,7 @@ final class CheckCommand
         $checked = 0;
         $errors = 0;
         $warnings = 0;
+        $notes = 0;
 
         // Load every unit first: a fluent call in one file may target a
         // component registered by another one. The shape tree is built here
@@ -175,7 +195,7 @@ final class CheckCommand
                 if ($units === null) {
                     $checked++;
                     $shape = ArtifactCompiler::load($file);
-                    self::report($stdout, $file, null, $this->checker->check(null, $shape->tree(), null), $errors, $warnings);
+                    self::report($stdout, $stderr, $file, null, $this->checker->check(null, $shape->tree(), null), $errors, $warnings, $notes);
                 } else {
                     if ($units === []) {
                         throw new RuntimeException('no component unit is registered here; `pure check` skips the file.');
@@ -195,20 +215,23 @@ final class CheckCommand
                             ),
                             $attributeFindings
                         );
-                        self::report($stdout, $file, $name, $findings, $errors, $warnings);
+                        self::report($stdout, $stderr, $file, $name, $findings, $errors, $warnings, $notes);
                     }
                 }
 
-                self::reportCallSites($stdout, $file, $errors, $warnings, $trees);
+                self::reportCallSites($stdout, $stderr, $file, $errors, $warnings, $trees);
             } catch (Throwable $error) {
                 $failed++;
                 fwrite($stderr, "pure: {$file}: {$error->getMessage()}\n");
             }
         }
 
+        // The note count is only appended when there is one: without it the
+        // info lines printed above would have nothing in the summary to match.
         fwrite(
             $stdout,
-            "checked {$checked} unit(s): {$errors} error(s), {$warnings} warning(s).\n"
+            "checked {$checked} unit(s): {$errors} error(s), {$warnings} warning(s)"
+            . ($notes > 0 ? ", {$notes} note(s)" : '') . ".\n"
         );
 
         if ($failed > 0 || $errors > 0 || ($strict && $warnings > 0)) {
@@ -221,12 +244,14 @@ final class CheckCommand
     /**
      * Check the fluent component calls in one file: every `->prop(...)` of a
      * call must be accepted by its target, which is the prepare() parameter
-     * list when the unit has one and its slot list otherwise.
+     * list when the unit has one and its slot list otherwise. Each finding
+     * carries the line of the setter that caused it.
      *
      * @param resource $stdout The output stream.
+     * @param resource $stderr The error stream.
      * @param array<string, Tag> $trees The data-free tree per registered unit.
      */
-    private static function reportCallSites($stdout, string $file, int &$errors, int &$warnings, array $trees): void
+    private static function reportCallSites($stdout, $stderr, string $file, int &$errors, int &$warnings, array $trees): void
     {
         foreach (CallSites::of($file, Registry::names()) as $site) {
             if ($site['dynamic']) {
@@ -241,10 +266,10 @@ final class CheckCommand
 
             $deprecated = self::deprecatedProps($site['name']);
 
-            foreach (array_keys($site['props']) as $prop) {
+            foreach ($site['props'] as $prop => $line) {
                 if (in_array($prop, $expected, true) || in_array($prop, self::CALL_METHODS, true)) {
                     if (isset($deprecated[$prop])) {
-                        fwrite($stdout, "warning: {$file}: component '{$site['name']}': the call binds '{$prop}', which is deprecated: {$deprecated[$prop]}\n");
+                        self::diagnostic($stdout, $stderr, $file, $line, 'warning', "component '{$site['name']}': the call binds '{$prop}', which is deprecated: {$deprecated[$prop]}");
                         $warnings++;
                     }
 
@@ -252,7 +277,7 @@ final class CheckCommand
                 }
 
                 if ($prop === 'children') {
-                    fwrite($stdout, "error: {$file}: component '{$site['name']}': pass children to the call itself, e.g. {$site['name']}(\$children)\n");
+                    self::diagnostic($stdout, $stderr, $file, $line, 'error', "component '{$site['name']}': pass children to the call itself, e.g. {$site['name']}(\$children)");
                     $errors++;
 
                     continue;
@@ -261,7 +286,7 @@ final class CheckCommand
                 $nearest = Suggestion::nearest($prop, $expected);
                 $hint = $nearest === null ? '' : " (did you mean '{$nearest}'?)";
 
-                fwrite($stdout, "error: {$file}: component '{$site['name']}': the call binds '{$prop}', which the target does not accept{$hint}\n");
+                self::diagnostic($stdout, $stderr, $file, $line, 'error', "component '{$site['name']}': the call binds '{$prop}', which the target does not accept{$hint}");
                 $errors++;
             }
 
@@ -274,7 +299,18 @@ final class CheckCommand
             $slots = self::propSlots($site['name']);
 
             foreach ($site['items'] as $prop => $items) {
-                self::reportItems($stdout, $file, $site['name'], $prop, $items, $tree, $slots[$prop] ?? $prop, $errors);
+                self::reportItems(
+                    $stdout,
+                    $stderr,
+                    $file,
+                    $site['name'],
+                    $prop,
+                    $site['props'][$prop],
+                    $items,
+                    $tree,
+                    $slots[$prop] ?? $prop,
+                    $errors
+                );
             }
         }
     }
@@ -286,9 +322,11 @@ final class CheckCommand
      * no item shape (a scalar list, a raw list) is skipped.
      *
      * @param resource $stdout The output stream.
+     * @param resource $stderr The error stream.
+     * @param int $line The line of the setter the literal is bound to.
      * @param list<array<string, true>> $items The literal keys per item.
      */
-    private static function reportItems($stdout, string $file, string $name, string $prop, array $items, Tag $tree, string $slot, int &$errors): void
+    private static function reportItems($stdout, $stderr, string $file, string $name, string $prop, int $line, array $items, Tag $tree, string $slot, int &$errors): void
     {
         $contract = RootSlots::itemSlots($tree, $slot);
 
@@ -307,7 +345,7 @@ final class CheckCommand
                 $nearest = Suggestion::nearest($key, $read);
                 $hint = $nearest === null ? '' : " (did you mean '{$nearest}'?)";
 
-                fwrite($stdout, "error: {$file}: component '{$name}': item " . ($index + 1) . " of '{$prop}' binds '{$key}', which the item shape of slot '{$slot}' does not read{$hint}\n");
+                self::diagnostic($stdout, $stderr, $file, $line, 'error', "component '{$name}': item " . ($index + 1) . " of '{$prop}' binds '{$key}', which the item shape of slot '{$slot}' does not read{$hint}");
                 $errors++;
             }
 
@@ -316,7 +354,7 @@ final class CheckCommand
                     continue;
                 }
 
-                fwrite($stdout, "error: {$file}: component '{$name}': item " . ($index + 1) . " of '{$prop}' does not provide '{$key}', which the item shape of slot '{$slot}' requires\n");
+                self::diagnostic($stdout, $stderr, $file, $line, 'error', "component '{$name}': item " . ($index + 1) . " of '{$prop}' does not provide '{$key}', which the item shape of slot '{$slot}' requires");
                 $errors++;
             }
         }
@@ -454,27 +492,56 @@ final class CheckCommand
     }
 
     /**
+     * Write the findings of one unit. A diagnostic reads as
+     * `path:line: level: message`, so an editor and a CI annotation can pick
+     * it up; the pass line stays on stdout.
+     *
      * @param resource $stdout The output stream.
+     * @param resource $stderr The error stream.
+     * @param string $file The unit file.
+     * @param string|null $name The component name, null for a shape.
      * @param list<Finding> $findings The findings of one unit.
      */
-    private static function report($stdout, string $file, ?string $name, array $findings, int &$errors, int &$warnings): void
+    private static function report($stdout, $stderr, string $file, ?string $name, array $findings, int &$errors, int &$warnings, int &$notes): void
     {
-        $label = $name === null ? "{$file} (shape)" : "component '{$name}' -> {$file}";
-
         if ($findings === []) {
+            $label = $name === null ? "{$file} (shape)" : "component '{$name}' -> {$file}";
             fwrite($stdout, "ok: {$label}\n");
 
             return;
         }
 
+        $subject = $name === null ? '' : "component '{$name}': ";
+
         foreach ($findings as $finding) {
-            fwrite($stdout, "{$finding->level}: {$label}: {$finding->message}\n");
+            self::diagnostic($stdout, $stderr, $file, null, $finding->level, $subject . $finding->message);
 
             if ($finding->level === 'error') {
                 $errors++;
             } elseif ($finding->level === 'warning') {
                 $warnings++;
+            } else {
+                $notes++;
             }
         }
+    }
+
+    /**
+     * Write one diagnostic as a `path:line: level: message` line. An error and
+     * a warning go to stderr, so `2>/dev/null` leaves only the results; an
+     * info note is a result and stays on stdout.
+     *
+     * @param resource $stdout The output stream.
+     * @param resource $stderr The error stream.
+     * @param string $file The file the finding is in.
+     * @param int|null $line The line, when the finding has one.
+     * @param string $level The finding level.
+     * @param string $message The finding text.
+     */
+    private static function diagnostic($stdout, $stderr, string $file, ?int $line, string $level, string $message): void
+    {
+        $stream = $level === 'error' || $level === 'warning' ? $stderr : $stdout;
+
+        fwrite($stream, ($line === null ? $file : "{$file}:{$line}") . ": {$level}: {$message}\n");
     }
 }

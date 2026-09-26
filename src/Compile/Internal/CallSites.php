@@ -24,7 +24,8 @@ final class CallSites
     /**
      * @param string $file The file to scan.
      * @param list<string> $names The registered component names.
-     * @return list<array{name: string, props: array<string, true>, items: array<string, list<array<string, true>>>, dynamic: bool}>
+     * @return list<array{name: string, props: array<string, int>, items: array<string, list<array<string, true>>>, dynamic: bool}>
+     *     `props` holds each prop name with the line of its `->prop(...)`, and
      *     `items` holds, per prop bound to an array literal of array literals,
      *     the literal keys of every item.
      */
@@ -84,7 +85,7 @@ final class CallSites
      * The `->prop(...)` chain after a call, plus whether it is dynamic.
      *
      * @param list<array{0: int, 1: string, 2: int}|string> $tokens
-     * @return array{0: array<string, true>, 1: array<string, list<array<string, true>>>, 2: bool}
+     * @return array{0: array<string, int>, 1: array<string, list<array<string, true>>>, 2: bool}
      */
     private static function chain(array $tokens, int $end): array
     {
@@ -123,7 +124,7 @@ final class CallSites
             if (self::hasSpread($tokens, $openIndex, $close)) {
                 $dynamic = true;
             } else {
-                $props[$name[1]] = true;
+                $props[$name[1]] = $name[2];
                 $literal = self::items($tokens, $openIndex, $close);
 
                 if ($literal !== null) {

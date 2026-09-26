@@ -9,6 +9,11 @@ if (!is_file($autoload)) {
     $autoload = __DIR__ . '/../../../autoload.php';
 }
 
+if (!is_file($autoload)) {
+    fwrite(STDERR, "pure: Composer's autoloader was not found; run `composer install` first.\n");
+    exit(1);
+}
+
 require $autoload;
 
 /** @var list<string> $argv */
@@ -22,8 +27,18 @@ $version = static function (): int {
     return 0;
 };
 
-exit(match ($argv[1] ?? null) {
-    '--version', 'version', '-v' => $version(),
-    'check' => (new Pure\Compile\Internal\CheckCommand($units))->run($argv),
-    default => (new Pure\Compile\Internal\ArtifactCommand($units))->run($argv),
-});
+try {
+    $code = match ($argv[1] ?? null) {
+        '--version', 'version', '-v' => $version(),
+        'help' => (new Pure\Compile\Internal\ArtifactCommand($units))->run(['pure', '--help']),
+        'check' => (new Pure\Compile\Internal\CheckCommand($units))->run($argv),
+        default => (new Pure\Compile\Internal\ArtifactCommand($units))->run($argv),
+    };
+} catch (Throwable $error) {
+    // A crash here is a bug in the compiler or in a unit it loads; the file
+    // and the reason are what the user needs, not a nine-frame stack trace.
+    fwrite(STDERR, 'pure: ' . $error->getMessage() . PHP_EOL);
+    $code = 1;
+}
+
+exit($code);

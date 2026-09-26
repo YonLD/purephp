@@ -25,6 +25,7 @@ final class ArtifactCommand
           pure compile <path>...   write *.pure.php artifacts (and --plain views)
           pure check <path>...     check component contracts (slots, bindings)
           pure -v, --version       print the version
+          pure help, pure --help   show this help
 
         Run `pure check --help` for the contract checks.
 
@@ -40,10 +41,16 @@ final class ArtifactCommand
                        renders without purephp installed
           --list       print the components and shape files found, without compiling
           -h, --help   show this help
+          --           treat every later argument as a path
 
         A *.cmp.php unit registers exactly one component with
         Pure\Component\register(); compiling it requires the
         file, so run the compiler through bin/pure, which wires the registry.
+
+        Exit codes:
+          0  every unit compiled, or nothing was stale under --check
+          1  a file could not be read or compiled, or --check found stale files
+          2  the command line was wrong
 
         USAGE;
 
@@ -74,12 +81,12 @@ final class ArtifactCommand
         $command = array_shift($arguments);
 
         if ($command === null) {
-            fwrite($stderr, self::USAGE);
+            fwrite($stdout, self::USAGE);
 
-            return 1;
+            return 0;
         }
 
-        if ($command === '-h' || $command === '--help') {
+        if ($command === '-h' || $command === '--help' || $command === 'help') {
             fwrite($stdout, self::USAGE);
 
             return 0;
@@ -88,15 +95,28 @@ final class ArtifactCommand
         if ($command !== 'compile') {
             fwrite($stderr, "pure: unknown command '{$command}'.\n\n" . self::USAGE);
 
-            return 1;
+            return 2;
         }
 
         $check = false;
         $plain = false;
         $list = false;
         $paths = [];
+        $literal = false;
 
         foreach ($arguments as $argument) {
+            if ($literal) {
+                $paths[] = $argument;
+
+                continue;
+            }
+
+            if ($argument === '--') {
+                $literal = true;
+
+                continue;
+            }
+
             if ($argument === '--check') {
                 $check = true;
 
@@ -122,9 +142,9 @@ final class ArtifactCommand
             }
 
             if (str_starts_with($argument, '-')) {
-                fwrite($stderr, "pure: unknown option '{$argument}'.\n");
+                fwrite($stderr, "pure: unknown option '{$argument}'.\n\n" . self::USAGE);
 
-                return 1;
+                return 2;
             }
 
             $paths[] = $argument;
@@ -133,7 +153,7 @@ final class ArtifactCommand
         if ($paths === []) {
             fwrite($stderr, "pure: compile needs at least one file or directory.\n\n" . self::USAGE);
 
-            return 1;
+            return 2;
         }
 
         $failed = 0;
@@ -164,7 +184,7 @@ final class ArtifactCommand
                 }
 
                 if ($units === null) {
-                    self::compile($file, null, $check, $plain, $stdout, $stale);
+                    self::compile($file, null, $check, $plain, $stdout, $stderr, $stale);
 
                     continue;
                 }
@@ -190,7 +210,7 @@ final class ArtifactCommand
                     );
                 }
 
-                self::compile($file, $shape, $check, $plain, $stdout, $stale);
+                self::compile($file, $shape, $check, $plain, $stdout, $stderr, $stale);
             } catch (Throwable $error) {
                 $failed++;
                 fwrite($stderr, "pure: {$file}: {$error->getMessage()}\n");
@@ -256,9 +276,10 @@ final class ArtifactCommand
      * @param bool $check Report instead of writing.
      * @param bool $plain Also handle the plain view.
      * @param resource $stdout The output stream.
+     * @param resource $stderr The error stream, for the missing and stale reports.
      * @param int $stale The stale counter to update.
      */
-    private static function compile(string $file, ?Shape $shape, bool $check, bool $plain, $stdout, int &$stale): void
+    private static function compile(string $file, ?Shape $shape, bool $check, bool $plain, $stdout, $stderr, int &$stale): void
     {
         if ($check) {
             $sources = $shape === null
@@ -275,12 +296,12 @@ final class ArtifactCommand
 
                 if ($current === false) {
                     $stale++;
-                    fwrite($stdout, "missing: {$target}\n");
+                    fwrite($stderr, "missing: {$target}\n");
                 } elseif ($current === $expected) {
                     fwrite($stdout, "up to date: {$target}\n");
                 } else {
                     $stale++;
-                    fwrite($stdout, "stale: {$target}\n");
+                    fwrite($stderr, "stale: {$target}\n");
                 }
             }
 

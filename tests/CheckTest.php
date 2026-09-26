@@ -104,9 +104,11 @@ class CheckTest extends TestCase
         $result = $this->runCheck(['pure', 'check', $file]);
 
         $this->assertSame(1, $result['code']);
+        // A unit-level finding names its file without a line; only a finding
+        // about a fluent call carries one.
         $this->assertStringContainsString(
-            "slot 'items' is a list slot but parameter \$items is typed string",
-            $result['stdout']
+            "{$file}: error: component 'TypeBox': slot 'items' is a list slot but parameter \$items is typed string",
+            $result['stderr']
         );
         $this->assertStringNotContainsString("slot 'title'", $result['stdout']);
     }
@@ -143,8 +145,8 @@ class CheckTest extends TestCase
 
         $this->assertSame(0, $result['code']);
         $this->assertStringContainsString(
-            'warning: component \'NullBox\': parameter $title is nullable but slot \'title\' is required; binding null throws MissingSlotException',
-            str_replace(" -> {$file}", '', $result['stdout'])
+            "{$file}: warning: component 'NullBox': parameter \$title is nullable but slot 'title' is required; binding null throws MissingSlotException",
+            $result['stderr']
         );
 
         $strict = $this->runCheck(['pure', 'check', '--strict', $file]);
@@ -185,7 +187,7 @@ class CheckTest extends TestCase
         $this->assertSame(0, $result['code']);
         $this->assertStringContainsString(
             'parameter $extra is neither used by prepare() nor a slot of the template',
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -253,7 +255,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "required slot 'desc' is not returned by prepare()",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -288,7 +290,7 @@ class CheckTest extends TestCase
         $this->assertSame(0, $result['code']);
         $this->assertStringContainsString(
             'parameter $extra is neither used by prepare() nor a slot of the template',
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -319,7 +321,7 @@ class CheckTest extends TestCase
             "no prepare() and no function named 'PageBox'; the props are the template slots, so the call sites are checked instead",
             $result['stdout']
         );
-        $this->assertStringContainsString('0 error(s), 0 warning(s).', $result['stdout']);
+        $this->assertStringContainsString('0 error(s), 0 warning(s), 1 note(s).', $result['stdout']);
     }
 
     public function testFunctionThatDoesNotReturnACallIsAnError(): void
@@ -350,7 +352,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "'PlainFunctionBox()' must return Pure\\Component\\Call (it returns string); register a prepare() contract or return component(...) from it",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -378,7 +380,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "slot 'items' is used as a value or raw slot and as a child or list scope; one data key cannot be both",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -447,7 +449,7 @@ class CheckTest extends TestCase
             'fluent unit: its props are the template slots, so the call sites are checked instead',
             $result['stdout']
         );
-        $this->assertStringContainsString('0 error(s), 0 warning(s).', $result['stdout']);
+        $this->assertStringContainsString('0 error(s), 0 warning(s), 1 note(s).', $result['stdout']);
     }
 
     public function testFluentUnitChecksPrepareAgainstTheSlots(): void
@@ -517,11 +519,11 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "prepare() returns 'titel' but the template does not read it (did you mean 'title'?)",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "required slot 'title' is not returned by prepare()",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -599,7 +601,7 @@ class CheckTest extends TestCase
 
         $this->assertSame(0, $result['code']);
         $this->assertStringContainsString('its bindings are read from the #[Prop] declarations', $result['stdout']);
-        $this->assertStringContainsString('0 error(s), 0 warning(s).', $result['stdout']);
+        $this->assertStringContainsString('0 error(s), 0 warning(s), 1 note(s).', $result['stdout']);
     }
 
     public function testUndeclaredRequiredSlotIsAnErrorWhenPrepareIsComputed(): void
@@ -641,7 +643,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "required slot 'contents' is not covered by any declaration and prepare() does not return a readable array literal",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -679,7 +681,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "prop \$text declares slot 'title', which prepare() does not return",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -717,7 +719,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "prop \$text declares slot 'titel', which the template does not read (did you mean 'title'?)",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -758,7 +760,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "props \$text and \$heading declare the same slot 'title'",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -799,11 +801,11 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             'prop $title is declared optional but its parameter has no default value; callers must pass it',
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             'prop $class is declared required but its parameter has a default value; callers may omit it',
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -959,19 +961,19 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "prop \$features declares one item slot 'vaule' but the item shape of slot 'features' reads 'value' (did you mean 'value'?)",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "prop \$features declares one item slot 'value' but the item shape of slot 'features' reads 'value', 'url'",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "prop \$title declares item: 'value' but slot 'title' is not a list slot",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "prop \$features declares item: 'value' but the item shape of slot 'features' reads no slots",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -1036,9 +1038,9 @@ class CheckTest extends TestCase
         $this->assertSame(0, $result['code']);
         $this->assertStringContainsString(
             "component 'CheckDeprecated': the call binds 'style', which is deprecated: use class()",
-            $result['stdout']
+            $result['stderr']
         );
-        $this->assertStringContainsString('0 error(s), 1 warning(s).', $result['stdout']);
+        $this->assertStringContainsString('0 error(s), 1 warning(s), 1 note(s).', $result['stdout']);
     }
 
     public function testTrustedPropMustBindARawSlot(): void
@@ -1158,19 +1160,19 @@ class CheckTest extends TestCase
         $this->assertStringContainsString("ok: component 'CheckTrustedRaw'", $result['stdout']);
         $this->assertStringContainsString(
             "prop \$title is declared as markup (#[Trusted]) but slot 'title' is a text slot",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             'prop $title is declared as markup (#[Trusted]) but typed string; type it Markup|Stringable (or mixed) to accept markup, or drop the attribute and wrap the value in Raw::of() at the call site',
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "prop \$body is declared as markup (#[Trusted]) but slot 'body' is also read as a text slot",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "prop \$extra is declared as markup (#[Trusted]) but slot 'extra' is not read by the template",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -1243,7 +1245,7 @@ class CheckTest extends TestCase
         );
         $this->assertStringContainsString(
             "required slot 'desc' is not covered by any declaration and prepare() does not return a readable array literal",
-            $result['stdout']
+            $result['stderr']
         );
     }
 
@@ -1279,7 +1281,7 @@ class CheckTest extends TestCase
         $result = $this->runCheck(['pure', 'check', $file]);
 
         $this->assertSame(1, $result['code']);
-        $this->assertStringContainsString("#[Binds] declares 'titel', which prepare() does not return", $result['stdout']);
+        $this->assertStringContainsString("#[Binds] declares 'titel', which prepare() does not return", $result['stderr']);
     }
 
     public function testCallSiteItemKeysAreCheckedAgainstTheItemShape(): void
@@ -1365,15 +1367,15 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "item 2 of 'links' binds 'txet', which the item shape of slot 'links' does not read (did you mean 'text'?)",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "item 2 of 'links' does not provide 'text', which the item shape of slot 'links' requires",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "item 1 of 'links' does not provide 'href', which the item shape of slot 'links' requires",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringNotContainsString("of 'rows'", $result['stdout']);
         $this->assertStringNotContainsString("binds 'a'", $result['stdout']);
@@ -1444,13 +1446,119 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             "component 'CheckTarget': the call binds 'titel', which the target does not accept (did you mean 'title'?)",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringContainsString(
             "component 'CheckTarget': pass children to the call itself, e.g. CheckTarget(\$children)",
-            $result['stdout']
+            $result['stderr']
         );
         $this->assertStringNotContainsString('titel(...$props)', $result['stdout']);
+    }
+
+    public function testCallSiteFindingsCarryTheLineOfTheSetterOnStderr(): void
+    {
+        $this->writeFile('target-line.cmp.php', <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            use Pure\Compile\Compile;
+            use Pure\Core\Slot;
+
+            use function Pure\Component\register;
+            use function Pure\HTML\{div, li, ul};
+
+            $item = Compile::shape(li(Slot::value('text')));
+
+            function CheckLineTarget(mixed ...$children): \Pure\Component\Call
+            {
+                return \Pure\Component\component(__FUNCTION__, ...$children);
+            }
+
+            register(CheckLineTarget(...), static fn (): \Pure\Compile\Shape => Compile::shape(
+                div(Slot::value('title'), ul(Slot::each('links', $item)))
+            ));
+            PHP);
+
+        $page = $this->writeFile('page-line.cmp.php', <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            use Pure\Compile\Compile;
+
+            use function Pure\Component\register;
+            use function Pure\HTML\div;
+
+            function CheckLinePage(mixed ...$children): \Pure\Component\Call
+            {
+                return \Pure\Component\component(__FUNCTION__, ...$children);
+            }
+
+            register(CheckLinePage(...), static fn (): \Pure\Compile\Shape => Compile::shape(
+                div()
+            ));
+
+            function checkLineTargetCall(): string
+            {
+                return (string) CheckLineTarget('child')->titel('x');
+            }
+
+            function checkLineChildrenCall(): string
+            {
+                return (string) CheckLineTarget('child')->children('x');
+            }
+
+            function checkLineItemCall(): string
+            {
+                return (string) CheckLineTarget('child')->links([['txet' => 'x']]);
+            }
+            PHP);
+
+        $result = $this->runCheck(['pure', 'check', $this->dir]);
+
+        $this->assertSame(1, $result['code']);
+
+        // All three kinds of call-site finding point at the line of the setter
+        // that caused them, not at the top of the file.
+        $this->assertStringContainsString(
+            "{$page}:21: error: component 'CheckLineTarget': the call binds 'titel', "
+            . "which the target does not accept (did you mean 'title'?)",
+            $result['stderr']
+        );
+        $this->assertStringContainsString(
+            "{$page}:26: error: component 'CheckLineTarget': pass children to the call itself, "
+            . 'e.g. CheckLineTarget($children)',
+            $result['stderr']
+        );
+        $this->assertStringContainsString(
+            "{$page}:31: error: component 'CheckLineTarget': item 1 of 'links' binds 'txet', "
+            . "which the item shape of slot 'links' does not read (did you mean 'text'?)",
+            $result['stderr']
+        );
+        $this->assertStringNotContainsString('error:', $result['stdout']);
+    }
+
+    public function testEverythingAfterADoubleDashIsAPath(): void
+    {
+        $file = $this->writeFile('dashed.shape.php', <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            use function Pure\HTML\div;
+
+            return div();
+            PHP);
+
+        // Without the separator this reads as an unknown option and exits 2.
+        $option = $this->runCheck(['pure', 'check', '--dashed.shape.php']);
+        $this->assertSame(2, $option['code']);
+        $this->assertStringContainsString("unknown option '--dashed.shape.php'", $option['stderr']);
+
+        $result = $this->runCheck(['pure', 'check', '--', $file]);
+        $this->assertSame(0, $result['code']);
+        $this->assertStringContainsString("ok: {$file} (shape)", $result['stdout']);
     }
 
     public function testPrepareKeysAreReadFromAnInterpolatedLiteral(): void
@@ -1581,11 +1689,11 @@ class CheckTest extends TestCase
     public function testUsageErrors(): void
     {
         $missing = $this->runCheck(['pure', 'check']);
-        $this->assertSame(1, $missing['code']);
+        $this->assertSame(2, $missing['code']);
         $this->assertStringContainsString('check needs at least one file or directory', $missing['stderr']);
 
         $unknown = $this->runCheck(['pure', 'check', '--nope', $this->dir]);
-        $this->assertSame(1, $unknown['code']);
+        $this->assertSame(2, $unknown['code']);
         $this->assertStringContainsString("unknown option '--nope'", $unknown['stderr']);
 
         $help = $this->runCheck(['pure', 'check', '--help']);
@@ -1637,7 +1745,7 @@ class CheckTest extends TestCase
         $this->assertSame(1, $result['code']);
         $this->assertStringContainsString(
             '#[Template] function tplBoxBroken() must declare a return type of Pure\\Compile\\Shape or a tag, got string',
-            $result['stdout']
+            $result['stderr']
         );
     }
 
