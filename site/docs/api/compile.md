@@ -151,6 +151,11 @@ $shape = Compile::shape(
 );
 $shape([
     'header' => '<header>Users</header>',
+    // An item may be the one slot its item shape renders, or a scope of its own.
+    'rows' => ['Ada'],
+]);
+$shape([
+    'header' => '<header>Users</header>',
     'rows' => [['title' => 'Ada']],
 ]);
 ```
@@ -338,7 +343,10 @@ default), the checks cost one property read per render.
   or a missing shape: `LogicException` at compile time.
 - Non-iterable list, non-array item or scope, non-stringable value:
   `InvalidArgumentException` at render time (and `required()`/`default()` on
-  `Slot::if()` throw a `LogicException`).
+  `Slot::if()` throw a `LogicException`). A list item that is not an array
+  reports the keys its item shape reads, or that it reads none: `slot 'items[]'
+  must be an array, string given. The item shape of this slot reads 'a' and 'b',
+  so each item must be an array.`
 
 ## Trees with Slots Cannot Use Other Output Paths
 

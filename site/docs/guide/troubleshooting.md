@@ -82,9 +82,11 @@ See the canonical [Compile API](/api/compile#slot-types) and
 
 ### A child or each-slot value is rejected
 
-`Slot::child()` and `Slot::each()` have structural contracts: a child scope is
-an array, and every item in an each scope is an array. Normalize records before
-rendering:
+`Slot::child()` has a structural contract: a child scope is an array. Every item
+of an each scope is a scope too, except when the item shape renders exactly one
+slot — then the item may be that slot's value, so a list of strings needs no
+wrapping. An item shape that reads several slots, or reads its one slot as a
+nested `Slot::child()` or `Slot::each()`, still needs a real array per item:
 
 ```php
 $rows = array_map(
@@ -95,7 +97,8 @@ $rows = array_map(
 echo $page(['rows' => $rows]);
 ```
 
-A list of already-rendered strings belongs in `Slot::raw()`, not in
+The rejection message names the keys the item shape reads, so it is the list to
+build. A list of already-rendered strings belongs in `Slot::raw()`, not in
 `Slot::each()`.
 
 ### `unknown prop`, `missing prop`, or a `did you mean` message

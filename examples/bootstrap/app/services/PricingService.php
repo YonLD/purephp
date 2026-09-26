@@ -47,7 +47,7 @@ final class PricingService
     /**
      * The pricing cards.
      *
-     * @return list<array{type: string, price: string, features: list<array{value: string}>, text: string, class: string}>
+     * @return list<array{type: string, price: string, features: list<string>, text: string, class: string}>
      */
     public static function deck(): array
     {

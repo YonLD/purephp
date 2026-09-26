@@ -172,9 +172,10 @@ class TemplateGenerator extends RendererGenerator
         return 'TemplateRuntime::items(' . $this->access($dataVar, $slot, $slotPath) . ')';
     }
 
-    protected function scopeSource(string $value, string $scopePath): string
+    protected function scopeSource(string $value, string $scopePath, string $hint = ''): string
     {
-        return 'TemplateRuntime::scope(' . $value . ', ' . var_export($scopePath, true) . ')';
+        return 'TemplateRuntime::scope(' . $value . ', ' . var_export($scopePath, true)
+            . ($hint === '' ? '' : ', ' . var_export($hint, true)) . ')';
     }
 
     /**

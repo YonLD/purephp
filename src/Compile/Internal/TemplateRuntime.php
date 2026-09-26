@@ -147,11 +147,12 @@ final class TemplateRuntime
      *
      * @param mixed $value The mapped value.
      * @param string $path The slot path for error messages.
+     * @param string $hint The message suffix for a value that is not a scope.
      * @return array<array-key, mixed>
      */
-    public static function scope(mixed $value, string $path): array
+    public static function scope(mixed $value, string $path, string $hint = ''): array
     {
-        return SlotRuntime::scope($value, $path);
+        return SlotRuntime::scope($value, $path, $hint);
     }
 
     /**

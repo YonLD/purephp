@@ -165,6 +165,85 @@ final class RootSlots
     }
 
     /**
+     * The item scope manifest of a list slot: what each item of that slot has to
+     * supply.
+     *
+     * Every consumer of an item shape goes through this one analysis, so asking
+     * several questions of the same shape costs a single walk of it. A list slot
+     * with no shape has no item scope, which is an empty manifest; the walk
+     * rejects the missing shape right after, so no renderer is built from it.
+     *
+     * @param ShapeContract|null $shape The item shape of a list slot.
+     * @return array<string, array{required: bool, kinds: array<string, true>}>
+     */
+    public static function itemManifest(?ShapeContract $shape): array
+    {
+        return $shape === null ? [] : self::manifest($shape->tree());
+    }
+
+    /**
+     * The single key an item shape renders, when one value stands for a whole
+     * item scope.
+     *
+     * An item shape that reads exactly one key as a value or raw slot binds that
+     * key directly, so a scalar item can stand in for it: a list of strings
+     * renders a list of strings, and the caller does not wrap every item in a
+     * one-key map. The name is null when the shape reads several keys, reads
+     * its only key as a nested scope (a child or list slot needs a real array or
+     * iterable), or reads no key at all — there an item is a scope of its own
+     * and has to be an array.
+     *
+     * @param array<string, array{required: bool, kinds: array<string, true>}> $manifest The item scope manifest.
+     * @return ?string The key a scalar item binds, or null when it binds none.
+     */
+    public static function itemKey(array $manifest): ?string
+    {
+        if (count($manifest) !== 1) {
+            return null;
+        }
+
+        $name = array_key_first($manifest);
+        $kinds = $manifest[$name]['kinds'];
+
+        // Reading the key as a nested scope as well means the item has to stay a
+        // scope of its own, so a scalar cannot stand in for it even though the
+        // shape renders that same key as a value.
+        if (isset($kinds[SlotKind::Child->name]) || isset($kinds[SlotKind::Each->name])) {
+            return null;
+        }
+
+        // A condition is a truthiness read, not a rendered value: binding a
+        // scalar to it would pick a branch per item, which the shape never asked
+        // for.
+        return isset($kinds[SlotKind::Value->name]) || isset($kinds[SlotKind::Raw->name]) ? $name : null;
+    }
+
+    /**
+     * The message suffix naming the keys an item shape reads, for a list item
+     * that is not a scope.
+     *
+     * The suffix is a compiled constant, so it costs nothing on the path where
+     * the item is a scope: only the throw in SlotRuntime::scope() reads it.
+     *
+     * @param array<string, array{required: bool, kinds: array<string, true>}> $manifest The item scope manifest.
+     * @return string The suffix appended to the message of a rejected item.
+     */
+    public static function itemHint(array $manifest): string
+    {
+        $slots = array_keys($manifest);
+
+        if ($slots === []) {
+            return ' The item shape of this slot reads no slots, so each item must be an empty array.';
+        }
+
+        $quoted = array_map(static fn (string $name): string => "'{$name}'", $slots);
+        $last = array_pop($quoted);
+        $list = implode(', ', $quoted) . ($quoted === [] ? '' : ' and ') . $last;
+
+        return " The item shape of this slot reads {$list}, so each item must be an array.";
+    }
+
+    /**
      * @param array<string, array{required: bool, kinds: array<string, true>}> $slots
      */
     private static function add(array &$slots, Slot $slot): void

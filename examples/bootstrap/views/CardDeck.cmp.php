@@ -28,7 +28,7 @@ register(CardDeck(...),
             static fn (array $card): Call => Card()
                 ->type($card['type'])
                 ->price($card['price'])
-                ->features(array_map(static fn (array $feature): string => $feature['value'], $card['features']))
+                ->features($card['features'])
                 ->text($card['text'])
                 ->class($card['class']),
             PricingService::deck()

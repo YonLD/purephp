@@ -13,7 +13,7 @@
  *         signUp: array{text: string, href: string, class: string}
  *     },
  *     pricing: array{title: string, desc: string},
- *     deck: list<array{type: string, price: string, features: list<array{value: string}>, text: string, class: string}>,
+ *     deck: list<array{type: string, price: string, features: list<string>, text: string, class: string}>,
  *     footer: array{
  *         logo: array{src: string, width: string, height: string, text: string},
  *         links: list<array{title: string, links: list<array{text: string, href: string}>}>
@@ -59,10 +59,10 @@ final class PricingDao
                         'type' => 'Free',
                         'price' => '0',
                         'features' => [
-                            ['value' => '10 users included'],
-                            ['value' => '2 GB of storage'],
-                            ['value' => 'Email support'],
-                            ['value' => 'Help center access'],
+                            '10 users included',
+                            '2 GB of storage',
+                            'Email support',
+                            'Help center access',
                         ],
                         'text' => 'Sign up for free',
                         'class' => 'btn btn-lg btn-block btn-outline-primary',
@@ -71,10 +71,10 @@ final class PricingDao
                         'type' => 'Pro',
                         'price' => '15',
                         'features' => [
-                            ['value' => '20 users included'],
-                            ['value' => '10 GB of storage'],
-                            ['value' => 'Priority email support'],
-                            ['value' => 'Help center access'],
+                            '20 users included',
+                            '10 GB of storage',
+                            'Priority email support',
+                            'Help center access',
                         ],
                         'text' => 'Get started',
                         'class' => 'btn btn-lg btn-block btn-primary',
@@ -83,10 +83,10 @@ final class PricingDao
                         'type' => 'Enterprise',
                         'price' => '29',
                         'features' => [
-                            ['value' => '30 users included'],
-                            ['value' => '15 GB of storage'],
-                            ['value' => 'Phone and email support'],
-                            ['value' => 'Help center access'],
+                            '30 users included',
+                            '15 GB of storage',
+                            'Phone and email support',
+                            'Help center access',
                         ],
                         'text' => 'Contact us',
                         'class' => 'btn btn-lg btn-block btn-primary',

@@ -79,8 +79,14 @@ final class Slot
     }
 
     /**
-     * List slot: the value is an iterable of arrays, each rendered by $shape
+     * List slot: the value is an iterable of items, each rendered by $shape
      * and each being the nested scope of its item.
+     *
+     * When the item shape renders exactly one slot, an item may be that slot's
+     * value instead of a scope, so a list of strings needs no wrapping; an item
+     * that is an array is still a scope of its own, and both forms render. An
+     * item shape that reads several slots, reads its one slot as a nested
+     * child or list slot, or reads no slot at all takes an array per item.
      *
      * If the items are already-rendered markup (a Raw, or a list of them), use a
      * raw() slot and pass the list directly instead: each() is for data you

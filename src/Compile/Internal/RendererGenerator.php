@@ -8,6 +8,7 @@ use LogicException;
 use Pure\Compile\CompileException;
 use Pure\Core\Escaper;
 use Pure\Core\Raw;
+use Pure\Core\ShapeContract;
 use Pure\Core\Slot;
 use Pure\Core\SlotKind;
 use Pure\Core\Tag;
@@ -204,7 +205,7 @@ abstract class RendererGenerator implements ShapeVisitor
     {
         $itemVar = $this->itemVar();
         $this->statement('foreach (' . $this->itemsSource($slot, $this->data(), $slotPath) . ' as ' . $itemVar . ') {');
-        $this->dataStack[] = $this->eachScope($this->childVar(), $itemVar, $slotPath . '[]');
+        $this->dataStack[] = $this->eachScope($this->childVar(), $itemVar, $slotPath . '[]', $slot->shape);
     }
 
     /**
@@ -217,10 +218,27 @@ abstract class RendererGenerator implements ShapeVisitor
 
     /**
      * Bind the data scope of one list item and return the variable holding it.
+     *
+     * The item shape decides how much of an item the scope needs: a shape that
+     * renders one key binds a scalar item to that key, so a list of strings
+     * renders without a one-key map per item, while any other shape takes the
+     * item itself as the scope and names the keys it reads when the item is
+     * not one.
      */
-    protected function eachScope(string $childVar, string $itemVar, string $scopePath): string
+    protected function eachScope(string $childVar, string $itemVar, string $scopePath, ?ShapeContract $shape): string
     {
-        $this->statement($childVar . ' = ' . $this->scopeSource($itemVar, $scopePath) . ';');
+        $manifest = RootSlots::itemManifest($shape);
+        $key = RootSlots::itemKey($manifest);
+
+        if ($key === null) {
+            $hint = RootSlots::itemHint($manifest);
+        } else {
+            // An array item is a scope of its own, so both forms render.
+            $itemVar = '(is_array(' . $itemVar . ') ? ' . $itemVar . ' : [' . var_export($key, true) . ' => ' . $itemVar . '])';
+            $hint = '';
+        }
+
+        $this->statement($childVar . ' = ' . $this->scopeSource($itemVar, $scopePath, $hint) . ';');
 
         return $childVar;
     }
@@ -268,10 +286,14 @@ abstract class RendererGenerator implements ShapeVisitor
 
     /**
      * Expression writing the nested data scope of a slot.
+     *
+     * The hint is a compiled constant appended to the message of a rejected
+     * value, so it never costs anything on the path where the value is a scope.
      */
-    protected function scopeSource(string $value, string $scopePath): string
+    protected function scopeSource(string $value, string $scopePath, string $hint = ''): string
     {
-        return '\Pure\Compile\Internal\SlotRuntime::scope(' . $value . ', ' . var_export($scopePath, true) . ')';
+        return '\Pure\Compile\Internal\SlotRuntime::scope(' . $value . ', ' . var_export($scopePath, true)
+            . ($hint === '' ? '' : ', ' . var_export($hint, true)) . ')';
     }
 
     private function conditionExpr(Slot $slot, string $dataVar): string

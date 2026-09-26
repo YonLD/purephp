@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A list item may be the value of the one slot its item shape renders, so a
+  list of strings renders as a list of strings instead of a list of one-key
+  maps: `Slot::each('xs', li(Slot::value('value')))` accepts `['a', 'b']` next to
+  `[['value' => 'a'], ['value' => 'b']]`, and an item shape that reads several
+  slots, reads its one slot as a nested `Slot::child()` / `Slot::each()`, or
+  reads no slot at all keeps taking a real array scope. The binding is compiled
+  from the item shape, so no API changed and existing array items render
+  byte-identically.
+- A list item that is not an array reports what the item shape expects:
+  `slot 'items[]' must be an array, string given. The item shape of this slot
+  reads 'a' and 'b', so each item must be an array.`
+- A `null` list item is now bound to the slot it renders and fails as that slot
+  does — `MissingSlotException: slot 'items[].value' is required but was null.`,
+  the same outcome `[['value' => null]]` already had — instead of being
+  rejected as a scope that is not an array.
 - `pure help` is accepted as a name for the help, and a bare `pure` prints it on
   stdout with exit 0 rather than treating the missing subcommand as an error.
 - Both commands accept `--` before their paths, so a directory whose name starts
@@ -84,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Examples
 
+- The pricing example no longer wraps every feature in a one-key map: the DAO
+  holds the feature strings it has, `Card()` binds them straight through, and
+  the deck passes the record's features on instead of mapping them into
+  `['value' => $feature]` and back. The rendered page is byte-identical.
 - `examples/bootstrap/views/cover.php` called `renderHTML()` without importing
   it, so the bootstrap example's `/cover` route failed with `Call to undefined
   function renderHTML()` — the one route the upgrade guide tells you to check.

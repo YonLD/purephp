@@ -81,7 +81,7 @@ Slot types:
 | `Slot::value()` | scalar / `null` / `Stringable` | no — child position escapes to text; attribute position follows `setAttr()` semantics (`true`→`name="name"`, `false`/`null` omitted) |
 | `Slot::raw()` | stringable value (or a list of them), verbatim | no |
 | `Slot::child()` | array | yes |
-| `Slot::each()` | iterable of arrays | yes, per item |
+| `Slot::each()` | iterable of items: a scope per item, or a scalar when the item shape renders one slot | yes, per item |
 | `Slot::if()` | truthy condition | no (branches share the scope) |
 
 A slot name is always the **data key** (and the error path), never a tag or
@@ -136,7 +136,20 @@ $list(['items' => [['title' => 'a'], ['title' => 'b']]]);
 ```
 
 `Slot::child()` and `Slot::each()` establish a nested scope, so inside `li` the
-slot `title` resolves against the current item. Missing required keys throw
+slot `title` resolves against the current item. When the item shape renders one
+slot, an item may be that slot's value instead of a scope, so a list of strings
+renders as a list:
+
+```php
+<?php
+
+$list = Compile::shape(ul(Slot::each('items', li(Slot::value('title')))));
+
+$list(['items' => ['a', 'b']]);
+$list(['items' => [['title' => 'a'], ['title' => 'b']]]);
+```
+
+Missing required keys throw
 `Pure\Core\MissingSlotException` with the full path, whose message suggests the
 closest provided key or lists the keys the scope did provide; use
 `->default($value)` or `->required(false)` for optional data — the full rules

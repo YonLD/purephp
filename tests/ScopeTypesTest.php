@@ -72,7 +72,7 @@ final class ScopeTypesTest extends TestCase
         $this->assertSame(
             "/**\n"
             . " * @var array<array-key, mixed>|null \$box\n"
-            . " * @var iterable<array-key, array{value: scalar|null|\\Stringable}>|null \$list\n"
+            . " * @var iterable<array-key, array{value: scalar|null|\\Stringable}|scalar|null|\\Stringable>|null \$list\n"
             . ' */',
             ScopeTypes::docblock($tree)
         );

@@ -291,7 +291,9 @@ Compile::guard(true); // 或 PURE_COMPILE_GUARD=1
 - 位置错误（raw Slot 用作属性值）或缺少 Shape：编译期抛 `LogicException`。
 - 列表不可迭代、item 或作用域不是数组、值不可字符串化：渲染期抛
   `InvalidArgumentException`（对 `Slot::if()` 使用 `required()` / `default()` 会抛
-  `LogicException`）。
+  `LogicException`）。列表项不是数组时，信息会列出条目 Shape 读取的键，或说明它不读取任何
+  键：`slot 'items[]' must be an array, string given. The item shape of this slot reads
+  'a' and 'b', so each item must be an array.`
 
 ## 含 Slot 的树不能使用其它输出路径
 

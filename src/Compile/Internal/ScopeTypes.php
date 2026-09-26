@@ -174,9 +174,28 @@ final class ScopeTypes
             SlotKind::Value => self::VALUE,
             SlotKind::Raw => self::RAW,
             SlotKind::Child => $this->shapeType($slot->shape),
-            SlotKind::Each => 'iterable<array-key, ' . $this->shapeType($slot->shape) . '>',
+            SlotKind::Each => 'iterable<array-key, ' . $this->itemType($slot->shape) . '>',
             default => throw new LogicException("slot kind '{$slot->kind->name}' has no scope type."),
         };
+    }
+
+    /**
+     * The scope type of one item of a list slot.
+     *
+     * An item shape that renders one key also accepts a scalar, which stands in
+     * for the whole item scope, so the plain view binds it the same way the
+     * runtime does.
+     */
+    private function itemType(?ShapeContract $shape): string
+    {
+        $type = $this->shapeType($shape);
+
+        // A scalar item is bound to the one key the shape renders, and an array
+        // item is always a scope, so `scalar|null|\Stringable` is exactly what
+        // the generated `is_array()` test admits.
+        return RootSlots::itemKey(RootSlots::itemManifest($shape)) === null
+            ? $type
+            : $type . '|' . self::VALUE;
     }
 
     /**

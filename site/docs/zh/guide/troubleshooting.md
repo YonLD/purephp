@@ -78,8 +78,10 @@ Slot::value('title')->default('Untitled')
 
 ### child 或 each Slot 的值被拒绝
 
-`Slot::child()` 和 `Slot::each()` 有结构约束：child 作用域必须是数组，each 的每一项
-也必须是数组。渲染前先规整数据：
+`Slot::child()` 有结构约束：child 作用域必须是数组。each 的每一项同样是作用域，
+唯一例外是条目 Shape 只渲染一个 Slot —— 此时该项可以直接是该 Slot 的值，
+字符串列表无需再包一层。条目 Shape 读取多个 Slot，或唯一的 Slot 是嵌套的
+`Slot::child()` / `Slot::each()` 时，每一项仍然必须是数组：
 
 ```php
 $rows = array_map(
@@ -90,7 +92,8 @@ $rows = array_map(
 echo $page(['rows' => $rows]);
 ```
 
-已经渲染好的字符串列表应放入 `Slot::raw()`，而不是 `Slot::each()`。
+报错信息会列出条目 Shape 读取的键，照着它构造即可。已经渲染好的字符串列表应放入
+`Slot::raw()`，而不是 `Slot::each()`。
 
 ### 出现 `unknown prop`、`missing prop` 或 `did you mean`
 

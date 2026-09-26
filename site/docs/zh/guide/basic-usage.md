@@ -371,6 +371,7 @@ function Fruits(array $items): string
     return $render(['items' => $items]);
 }
 
+echo Fruits(['Apple', 'Banana', 'Orange']);
 echo Fruits([
     ['name' => 'Apple'],
     ['name' => 'Banana'],
@@ -378,7 +379,9 @@ echo Fruits([
 ]);
 ```
 
-每个元素都是一个数组，提供条目 Shape 所使用的 Slot 名；请求只向已编译好的 renderer 绑定数据。
+每个元素都是条目 Shape 所读取的作用域，`['name' => 'Apple']` 就提供了 `name` 键。
+由于该 Shape 只渲染一个 Slot，元素也可以直接是它的值，因此上面第一个调用传的就是
+字符串本身。
 
 ## 样式处理
 

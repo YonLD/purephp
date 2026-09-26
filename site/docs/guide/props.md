@@ -117,12 +117,35 @@ $shape(['classList' => 'btn btn-primary', 'disabled' => 'disabled']); // disable
 | `Slot::value($name)` | stringable; `null` is valid only when the effective value is optional or the slot is in attribute position | position decides the semantics: child position escapes to text (`true` renders "1"; a required value slot in child/text position rejects `null`); attribute position follows `setAttr()` (`true` renders `name="name"`, `false`/`null` omit the attribute) |
 | `Slot::raw($name)` | stringable, or an iterable of those; `null` is valid only for an optional slot | emitted verbatim, never escaped; an iterable is concatenated in order; a required raw slot rejects `null` |
 | `Slot::child($name, $shape)` | array | nested scope for `$shape`; the value must still be an array when the slot is optional |
-| `Slot::each($name, $shape)` | iterable of arrays | renders `$shape` per item; the value must still be iterable when the slot is optional |
+| `Slot::each($name, $shape)` | iterable of items | renders `$shape` per item; the value must still be iterable when the slot is optional |
 | `Slot::if($name, $then, $else = null)` | truthy check | renders a branch; a missing key is false |
 
 Choose a list slot by whether the markup already exists: `Slot::raw()`
 concatenates markup that is already rendered, while `Slot::each()` renders one
 item shape per data item.
+
+An item of a list slot is usually a scope — an array supplying the keys its item
+shape reads. When the item shape renders exactly one slot, the item may also be
+that slot's value, which keeps a list of strings a list of strings:
+
+```php
+<?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{li, ul};
+
+$list = Compile::shape(ul(Slot::each('items', li(Slot::value('label')))));
+
+$list(['items' => ['a', 'b']]);                   // both forms render the same
+$list(['items' => [['label' => 'a'], ['label' => 'b']]]);
+```
+
+An item shape that reads several slots, reads its one slot as a nested
+`Slot::child()` or `Slot::each()` or only as a condition, or reads no slot at
+all has no single value to bind, so its items stay scopes; a scalar item then
+reports the keys the shape expects.
 
 ## Modifiers
 
@@ -253,9 +276,10 @@ A nested shape can be a bare tag tree — `Slot::child('user', span(Slot::value(
 works too; `Compile::shape()` is only needed when the nested tree is built and
 memoized separately.
 
-`Slot::each()` reads its items the same way: every item
-is already the item scope, so a controller turns a list of rows into a list of
-prop arrays before handing it to the shape.
+`Slot::each()` reads its items the same way: an item is already the item scope,
+so a controller turns a list of rows into a list of prop arrays before handing it
+to the shape — unless the item shape renders one slot, where the plain values do
+as well.
 
 ## Component Props Contract
 

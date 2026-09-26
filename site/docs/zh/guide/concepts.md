@@ -69,7 +69,7 @@ Slot 类型：
 | `Slot::value()` | 标量 / `null` / `Stringable` | 否——子节点位转义为文本；属性位按 `setAttr()` 语义（`true`→`name="name"`，`false`/`null` 省略） |
 | `Slot::raw()` | 可字符串化的值（或这类值的可迭代集合），原样输出 | 否 |
 | `Slot::child()` | 数组 | 是 |
-| `Slot::each()` | 数组的可迭代集合 | 是，逐项 |
+| `Slot::each()` | 条目的可迭代集合：每项一个作用域；条目 Shape 只渲染一个 Slot 时，该项可直接是标量 | 是，逐项 |
 | `Slot::if()` | 真值条件 | 否（各分支共享作用域） |
 
 Slot 名字始终是**数据键**（也是错误路径），而不是标签名或属性名：在 `a(Slot::value('label'))->class(Slot::value('classList'))` 中，文本绑定 `label`，class 属性绑定 `classList`，而 `a` 与 `class` 来自树本身。
@@ -110,7 +110,18 @@ $list = Compile::shape(ul(Slot::each('items', li(Slot::value('title')))));
 $list(['items' => [['title' => 'a'], ['title' => 'b']]]);
 ```
 
-`Slot::child()` 与 `Slot::each()` 会建立嵌套作用域，因此在 `li` 内部，Slot `title` 针对当前项解析。缺失必填键会抛出带完整路径的 `Pure\Core\MissingSlotException`，错误信息会建议最接近的已提供键名或列出该作用域实际提供的键；可选数据请使用 `->default($value)` 或 `->required(false)`——完整规则见[缺失数据](/zh/guide/props#缺失数据)。
+`Slot::child()` 与 `Slot::each()` 会建立嵌套作用域，因此在 `li` 内部，Slot `title` 针对当前项解析。条目 Shape 只渲染一个 Slot 时，条目也可以是该 Slot 的值本身，于是字符串列表仍是字符串列表：
+
+```php
+<?php
+
+$list = Compile::shape(ul(Slot::each('items', li(Slot::value('title')))));
+
+$list(['items' => ['a', 'b']]);
+$list(['items' => [['title' => 'a'], ['title' => 'b']]]);
+```
+
+缺失必填键会抛出带完整路径的 `Pure\Core\MissingSlotException`，错误信息会建议最接近的已提供键名或列出该作用域实际提供的键；可选数据请使用 `->default($value)` 或 `->required(false)`——完整规则见[缺失数据](/zh/guide/props#缺失数据)。
 
 ## 组件
 

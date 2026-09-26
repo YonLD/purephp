@@ -135,6 +135,18 @@ final class PlainGenerator extends TemplateGenerator
     {
         $itemVar = $this->itemVar();
         $this->statement('foreach (' . $this->itemsSource($slot, $this->data(), $slotPath) . ' as ' . $itemVar . ') {');
+
+        // The runtime binds a scalar item to the one key an item shape renders;
+        // a plain view has no runtime, so it does the same with plain PHP and
+        // stays byte-identical for the data both forms accept.
+        $key = RootSlots::itemKey(RootSlots::itemManifest($slot->shape));
+        if ($key !== null) {
+            $this->statement(
+                $itemVar . ' = is_array(' . $itemVar . ') ? ' . $itemVar . ' : ['
+                . var_export($key, true) . ' => ' . $itemVar . '];'
+            );
+        }
+
         $this->dataStack[] = $itemVar;
     }
 
@@ -142,11 +154,6 @@ final class PlainGenerator extends TemplateGenerator
     {
         // Condition slots are never required, so the access carries the default.
         $this->statement('if ((bool)' . $this->slotData($this->data(), $slot) . ') {');
-    }
-
-    protected function eachScope(string $childVar, string $itemVar, string $scopePath): string
-    {
-        return $itemVar;
     }
 
     /**

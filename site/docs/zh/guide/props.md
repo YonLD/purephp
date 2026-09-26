@@ -105,11 +105,32 @@ $shape(['classList' => 'btn btn-primary', 'disabled' => 'disabled']);
 | `Slot::value($name)` | 可字符串化；只有可选值或属性位才接受有效的 `null` | 位置决定语义：子节点位转义为文本（`true` 为 "1"；子节点/文本位的必填值 Slot 拒绝 `null`）；属性位遵循 `setAttr()`（`true` 渲染 `name="name"`，`false`/`null` 省略该属性） |
 | `Slot::raw($name)` | 可字符串化值，或这类值的可迭代集合；只有可选 Slot 才接受 `null` | 原样输出，绝不转义；集合按顺序拼接；必填 raw Slot 拒绝 `null` |
 | `Slot::child($name, $shape)` | 数组 | 为 `$shape` 创建嵌套作用域；即使 Slot 可选，值仍必须是数组 |
-| `Slot::each($name, $shape)` | 数组的可迭代集合 | 逐项渲染 `$shape`；即使 Slot 可选，值仍必须可迭代 |
+| `Slot::each($name, $shape)` | 条目的可迭代集合 | 逐项渲染 `$shape`；即使 Slot 可选，值仍必须可迭代 |
 | `Slot::if($name, $then, $else = null)` | 真值判断 | 渲染分支；缺失的键为 false |
 
 选择列表 Slot 时，看标记是否已经渲染：`Slot::raw()` 拼接已渲染的标记，`Slot::each()`
 则按数据项逐个渲染 item Shape。
+
+列表项通常是一个作用域，即提供条目 Shape 所读各键的数组。当条目 Shape 恰好渲染一个
+Slot 时，该项也可以直接是这个 Slot 的值，字符串列表不必再包一层：
+
+```php
+<?php
+
+use Pure\Compile\Compile;
+use Pure\Core\Slot;
+
+use function Pure\HTML\{li, ul};
+
+$list = Compile::shape(ul(Slot::each('items', li(Slot::value('label')))));
+
+$list(['items' => ['a', 'b']]);                   // 两种写法渲染结果相同
+$list(['items' => [['label' => 'a'], ['label' => 'b']]]);
+```
+
+条目 Shape 读取多个 Slot、把唯一的 Slot 读作嵌套的 `Slot::child()` 或
+`Slot::each()`、或只读作条件，或者根本不读 Slot 时，都没有单一的值可绑定，其条目仍是
+作用域；此时传入标量，错误信息会列出该 Shape 期望的键。
 
 ## 修饰符
 
@@ -215,7 +236,8 @@ $shape(['user' => ['label' => 'ADA']]); // <div><span class="badge">ADA</span></
 嵌套 shape 也可以是裸标签树——`Slot::child('user', span(Slot::value('label')))` 同样可行；
 只有需要单独构建并复用嵌套树时才要写 `Compile::shape()`。
 
-`Slot::each()` 同理：每个元素本身就是该项的作用域，所以控制器先把原始行整理成 props 数组列表再渲染。
+`Slot::each()` 同理：每个元素本身就是该项的作用域，所以控制器先把原始行整理成 props
+数组列表再渲染；条目 Shape 只渲染一个 Slot 时，直接传原始值也可以。
 
 ## 组件 props 契约
 

@@ -15,6 +15,9 @@ use function Pure\HTML\{button, div, h1, h4, li, small, ul};
  *         ->features(['10 users included', '2 GB of storage'])
  *         ->text('Sign up for free')
  *         ->class('btn btn-lg btn-block btn-outline-primary');
+ *
+ * The item shape renders one slot, so a feature is the string itself: the
+ * shape binds each item to it instead of asking for a one-key map per feature.
  */
 function Card(): Call
 {
@@ -38,7 +41,7 @@ register(Card(...),
     prepare: static fn (string $type, string $price, #[Prop(item: 'value')] array $features, string $text, string $class): array => [
         'type' => $type,
         'price' => $price,
-        'features' => array_map(static fn (string $feature): array => ['value' => $feature], $features),
+        'features' => $features,
         'text' => $text,
         'class' => $class,
     ]

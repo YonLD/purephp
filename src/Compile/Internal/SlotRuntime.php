@@ -108,15 +108,23 @@ final class SlotRuntime
     /**
      * Ensure a child component value is an array usable as a nested data scope.
      *
+     * The hint is a compiled constant naming what the scope expects, appended to
+     * the message of a rejected value; a generated renderer passes it for the
+     * items of a list slot, whose shape decides whether a value can stand in
+     * for the scope at all.
+     *
      * @param mixed $value The slot value.
      * @param string $path The slot path for error messages.
+     * @param string $hint The message suffix for a value that is not a scope.
      * @return array<array-key, mixed>
      * @throws InvalidArgumentException When the value is not an array.
      */
-    public static function scope(mixed $value, string $path): array
+    public static function scope(mixed $value, string $path, string $hint = ''): array
     {
         if (!is_array($value)) {
-            throw new InvalidArgumentException("slot '{$path}' must be an array, " . get_debug_type($value) . ' given.');
+            throw new InvalidArgumentException(
+                "slot '{$path}' must be an array, " . get_debug_type($value) . ' given.' . $hint
+            );
         }
 
         return $value;

@@ -295,6 +295,7 @@ class ArtifactTest extends TestCase
             'stringable attribute' => ['req' => 'R', 'tip' => $stringable],
             'defaults used for scopes' => ['req' => 'R', 'items' => null, 'meta' => null],
             'nested scopes filled' => ['req' => 'R', 'items' => [['label' => 'a'], ['label' => 'b']], 'meta' => ['label' => 'M']],
+            'nested items bind a scalar' => ['req' => 'R', 'items' => ['a', ['label' => 'b'], 3]],
             'nested item missing its slot' => ['req' => 'R', 'items' => [['other' => 1]]],
             'values are empty strings' => ['req' => '', 'opt' => '', 'cls' => ''],
             'condition slot true' => ['req' => 'R', 'flag' => true],
@@ -496,8 +497,8 @@ class ArtifactTest extends TestCase
             "/**\n"
             . " * @var scalar|null|\\Stringable \$cardClass\n"
             . " * @var scalar|null|\\Stringable \$title\n"
-            . " * @var array{heading: scalar|null|\\Stringable, items: iterable<array-key, array{label: scalar|null|\\Stringable}>} \$content\n"
-            . " * @var iterable<array-key, array{label: scalar|null|\\Stringable}> \$links\n"
+            . " * @var array{heading: scalar|null|\\Stringable, items: iterable<array-key, array{label: scalar|null|\\Stringable}|scalar|null|\\Stringable>} \$content\n"
+            . " * @var iterable<array-key, array{label: scalar|null|\\Stringable}|scalar|null|\\Stringable> \$links\n"
             . " * @var mixed \$flag\n"
             . ' */',
             $plain
@@ -566,7 +567,11 @@ class ArtifactTest extends TestCase
         $written = ArtifactCompiler::writeAll($file, true);
         $this->assertStringContainsString('foreach ($meta[\'items\'] as $item', $plain);
         $this->assertStringContainsString(
-            '@var array{items: iterable<array-key, array{value: scalar|null|\\Stringable}>} $meta',
+            '$item1 = is_array($item1) ? $item1 : [\'value\' => $item1];',
+            $plain
+        );
+        $this->assertStringContainsString(
+            '@var array{items: iterable<array-key, array{value: scalar|null|\\Stringable}|scalar|null|\\Stringable>} $meta',
             $plain
         );
 
@@ -575,14 +580,20 @@ class ArtifactTest extends TestCase
         $index = ShapeIndex::of($shape->tree());
         $flat = CodeGenerator::fromSource(CodeGenerator::source($shape->tree()), $index->id());
 
-        $data = [
-            'meta' => ['items' => [['value' => 'm1'], ['value' => 'm2']]],
-        ];
+        foreach ([
+            [['value' => 'm1'], ['value' => 'm2']],
+            ['m1', 'm2'],
+            ['m1', ['value' => 'm2']],
+            [],
+        ] as $items) {
+            $data = ['meta' => ['items' => $items]];
 
-        $this->assertSame(
-            $flat->render($data),
-            self::renderPlain((string)$written['plain'], $data)
-        );
+            $this->assertSame(
+                $flat->render($data),
+                self::renderPlain((string)$written['plain'], $data),
+                var_export($items, true)
+            );
+        }
     }
 
     public function testPlainViewsFallBackToDataOffsetsForOddSlotNames(): void

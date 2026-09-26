@@ -382,6 +382,7 @@ function Fruits(array $items): string
     return $render(['items' => $items]);
 }
 
+echo Fruits(['Apple', 'Banana', 'Orange']);
 echo Fruits([
     ['name' => 'Apple'],
     ['name' => 'Banana'],
@@ -389,8 +390,9 @@ echo Fruits([
 ]);
 ```
 
-Each item is an array supplying the slot names used by the item shape; requests
-only bind data to the already compiled shape.
+An item is the scope its shape reads, so `['name' => 'Apple']` supplies that key.
+Because the shape renders one slot, an item may also be the value itself, which
+is why the first call above passes the strings as they are.
 
 ## Style Handling
 
