@@ -3,6 +3,7 @@
     "type": "library",
     "description": "Pure is a PHP template engine inspired by ReactJS.",
     "license": "MIT",
+    "homepage": "https://github.com/YonLD/purephp",
     "bin": [
         "bin/pure"
     ],
@@ -39,6 +40,10 @@
             "email": "istintin@outlook.com"
         }
     ],
+    "support": {
+        "source": "https://github.com/YonLD/purephp",
+        "issues": "https://github.com/YonLD/purephp/issues"
+    },
     "require": {
         "php": ">=8.1.0"
     },
