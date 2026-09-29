@@ -11,10 +11,10 @@ PurePHP is a PHP templating engine inspired by ReactJS functional components.
 - **English**: [https://yonld.github.io/purephp/](https://yonld.github.io/purephp/)
 - **中文**: [https://yonld.github.io/purephp/zh/](https://yonld.github.io/purephp/zh/)
 - **Project pages**: [Troubleshooting](https://yonld.github.io/purephp/guide/troubleshooting),
-  [Upgrading & Releases](https://yonld.github.io/purephp/guide/upgrading), and
+  [Upgrading](https://yonld.github.io/purephp/guide/upgrading), and
   [Examples](https://yonld.github.io/purephp/guide/examples)
 - **中文维护页**: [故障排查](https://yonld.github.io/purephp/zh/guide/troubleshooting)、
-  [升级与发布](https://yonld.github.io/purephp/zh/guide/upgrading)、
+  [升级](https://yonld.github.io/purephp/zh/guide/upgrading)、
   [示例](https://yonld.github.io/purephp/zh/guide/examples)
 
 Start with the [Quick Start](https://yonld.github.io/purephp/guide/getting-started),
@@ -297,7 +297,7 @@ compiled or plain variant):
 ```
 
 ```bash
-vendor/bin/pure compile --plain examples/bootstrap
+php bin/pure compile --plain examples/bootstrap
 php -S localhost:8000 -t examples/bootstrap/public \
     examples/bootstrap/public/index.php
 # http://localhost:8000/cover, and either flavor of each page:
@@ -320,23 +320,6 @@ Every artifact is byte-identical to its template, and every plain view to its
 artifact, preceded by the document header only when the view's root heads a
 document (`<html>` or an XML tree; a fragment view starts with its markup). See
 [the examples](examples).
-
-## Development
-
-```bash
-composer quality    # syntax-check + cs-check + phpstan + tests: run this before committing
-composer test       # PHPUnit only
-composer cs-fix     # apply the PHP CS Fixer rules
-composer phpstan    # static analysis (level 9)
-composer bench      # benchmarks
-```
-
-The documentation site lives in `site/` (VitePress):
-`npm run docs:dev` to preview locally, `npm run docs:qa` to run source-only
-Markdown/link/anchor/parity checks and lint every complete PHP fence; set
-`DOCS_QA_STRICT=1` to fail on warnings, and use
-`npm run docs:build` to build it
-(this also regenerates `llms.txt` and verifies its links).
 
 ## License
 

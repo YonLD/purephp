@@ -5,10 +5,11 @@ description: Public PurePHP component helpers, Call behavior, registry boundarie
 
 # Component API
 
-This page covers the component surface around `Pure\Component`. The canonical
-`Slot` constructor and value table lives in
-[Props and Slots](/guide/props#slot-reference); the guide explains composition,
-while this page records the public entry points and their boundaries.
+The component helpers around `Pure\Component`: `component()`, `register()`,
+`Call`, the contract attributes and `#[Template]`, and the PHPStan integration.
+Slot constructors and value types are in
+[Props and Slots](/guide/props#slot-reference); composition is in
+[Components](/guide/components).
 
 ## Public surface at a glance
 
@@ -264,7 +265,7 @@ does not leak into your component contracts.
 
 ## PHPStan integration
 
-The project ships public static-analysis classes and enables them in
+The package ships public static-analysis classes that you register in your own
 `phpstan.neon`:
 
 - `Pure\StaticAnalysis\ComponentCallCollector` and
@@ -275,21 +276,32 @@ The project ships public static-analysis classes and enables them in
 - the rule has the `@api` marker and reports the identifier
   `purephp.unknownComponent`.
 
-Run the complete project analysis, because collected registrations are only
-available after all files are analysed:
+```
+# phpstan.neon
+services:
+    -
+        class: Pure\StaticAnalysis\ComponentCallCollector
+        tags:
+            - phpstan.collector
+    -
+        class: Pure\StaticAnalysis\RegistryCallCollector
+        tags:
+            - phpstan.collector
 
-```bash
-composer phpstan
+rules:
+    - Pure\StaticAnalysis\UnknownComponentRule
 ```
 
-The rule is skipped for single-file analysis. Paths and
-`component(__FUNCTION__)` are resolved by their file and function context rather
-than treated as unknown literals. Keep dynamic names in application code when a
-component is selected from data, and validate the data at the boundary.
+Analyse the whole project rather than a single path, because collected
+registrations are only complete once every file has been analysed. The rule is
+skipped for single-file analysis. Paths and `component(__FUNCTION__)` are
+resolved by their file and function context rather than treated as unknown
+literals. Keep dynamic names in application code when a component is selected
+from data, and validate the data at the boundary.
 
 ## Related pages
 
 - [Components](/guide/components) — composition, props, children, and pages
 - [Compile API](/api/compile) — Shape, Renderer, Slot, cache, and artifact APIs
 - [Troubleshooting](/guide/troubleshooting) — registry, prop, and artifact symptoms
-- [Upgrading & Releases](/guide/upgrading) — contract changes and rebuild steps
+- [Upgrading](/guide/upgrading) — upgrade and rebuild steps

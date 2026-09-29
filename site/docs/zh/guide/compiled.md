@@ -50,7 +50,7 @@ echo $root([
 
 模板里可用的 Slot 一览（`Slot::value()`、`Slot::raw()`、`Slot::child()`、`Slot::each()`、
 `Slot::if()`）以及修饰符、值转换与缺失数据的完整语义，见
-[Props 与 Slot](/zh/guide/props#slot-参考)，本页不再重复。
+[Props 与 Slot](/zh/guide/props#slot-参考)。
 
 ## 作用域与缺失数据
 
@@ -187,32 +187,14 @@ Compile::guard(true);           // 或设置 PURE_COMPILE_GUARD=1
 
 ## 性能
 
-本节是整份文档唯一的规范性能实测参考。下表快照来自
-[commit `c9b33e3` 的 `bench/README.md`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/README.md#recorded-numbers)，
-基准源码也固定在[同一 commit](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)。
-记录使用 `bench/compare.php`，在 AMD Ryzen 5 7500F、Linux、PHP 8.4.24 CLI
-（NTS，opcache 8.4.24）上运行 200 行（约 604 个渲染元素）、3000 次迭代，记录日期为
-2026-09-16。
+一页的开销取决于每次请求重复了多少工作：
 
-| 路径 | 无 opcache | Opcache | Opcache + JIT |
-| --- | ---: | ---: | ---: |
-| 构建树 + `Tag::render()` | 631.0 µs | 608.3 µs | 433.8 µs |
-| 编译 Shape + 数据 | 141.7 µs | 135.2 µs | 107.9 µs |
-| 仅渲染（复用树） | 224.2 µs | 212.4 µs | 163.5 µs |
-| 编译静态树（字面量） | 0.1 µs | 0.1 µs | 0.2 µs |
-| 端到端加速 | 4.5× | 4.5× | 4.0× |
+- 编译 Shape 是每个进程一次性的开销，不是每请求开销；
+- 预编译产物把「构建 Shape 树 + 遍历指纹」替换为一次 `require`；
+- plain 视图是开销最低的形态：值直接进入 `htmlspecialchars()`，没有运行时访问器调用。
 
-这些数字代表一次真实记录，不是对其它 CPU 或 PHP 构建的承诺。同一源码快照还记录了产物加载
-（`bench/artifact.php`）、渲染器缓存（`bench/cache.php`）、组件加载
-（`bench/registry.php`）与完整页面（`examples/bootstrap/bench.php`）。选择 worker、运行时缓存
-或预编译产物前，应在目标部署上运行相应脚本。
-
-同一快照中的支撑数据：预编译产物首次 `require` 需 38–67 µs，热加载约 25 µs，每次渲染
-1.4–2.5 µs（`bench/artifact.php`）；渲染器缓存冷启动约 0.78 ms，热读取约 0.26 ms
-（`bench/cache.php`）；开启 opcache 后，22 个组件产物合计只需 10–14 µs 加载
-（`bench/registry.php`）；示例页面作为页面函数约 104 µs、作为 plain 视图约 20 µs
-（`examples/bootstrap/bench.php`）。校验内容比编译更贵：对每个单元做哈希约 7 µs/文件，
-读取产物头部约 4 µs，而用 opcache 加载产物约 0.5 µs。
+这些开销会随 PHP 版本、opcache 与 CPU 变化，因此选择 worker、运行时缓存或预编译产物前，
+请在目标部署上自行实测。
 
 ## 可信标记与部署
 

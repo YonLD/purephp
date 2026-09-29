@@ -57,7 +57,7 @@ echo Card()->title('Card Title')->content('Card Content');
 
 ## Children, lists, and buttons
 
-This README-style unit shows all three common data paths in one shape: children
+This unit shows all three common data paths in one shape: children
 through the reserved raw slot, repeated records through `Slot::each()`, and
 button attributes through value slots.
 
@@ -105,20 +105,24 @@ complete vocabulary, start with [Quick Start](/guide/getting-started) and then
 
 ## Prepare the repository
 
-Install the root Composer dependencies first, then compile the example paths:
+The examples are not shipped in the Composer package, so clone the repository
+and run the commands below from its root. A clone has no `vendor/bin/pure` —
+Composer creates that proxy for installed packages only — so use `bin/pure`:
 
 ```bash
+git clone https://github.com/YonLD/purephp.git
+cd purephp
 composer install
-vendor/bin/pure compile --plain examples/bootstrap
-vendor/bin/pure compile --plain examples/event-counter
-vendor/bin/pure compile --plain examples/xml
+php bin/pure compile --plain examples/bootstrap
+php bin/pure compile --plain examples/event-counter
+php bin/pure compile --plain examples/xml
 ```
 
 Use `--list` to inspect discovered units. The output labels are `(component)`,
 `(shape)`, and `(template)`; a page is not a separate file type:
 
 ```bash
-vendor/bin/pure compile --list examples
+php bin/pure compile --list examples
 ```
 
 ## Bootstrap MVC example
@@ -212,13 +216,6 @@ document. The plain path is useful when the deployment ships only `public/` and
 `views/` and does not install PurePHP. It is an include-based view, not a
 second template language.
 
-When an example changes, run the check in CI:
-
-```bash
-vendor/bin/pure compile --check --plain examples
-vendor/bin/pure check examples
-```
-
 For troubleshooting a missing route, stale artifact, or escaped fragment, see
 [Troubleshooting](/guide/troubleshooting). For release-specific rebuild steps,
-see [Upgrading & Releases](/guide/upgrading).
+see [Upgrading](/guide/upgrading).

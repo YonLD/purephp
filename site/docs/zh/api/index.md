@@ -1,7 +1,7 @@
 # API 参考
 
-本节介绍公共渲染与组件入口。它是概览，不承诺每个内部辅助函数都是稳定 API；请阅读各页的
-边界说明，并查看 [Component API](/zh/api/component) 了解组件接口。
+公共渲染与组件入口。各页都会说明哪些是公共 API、哪些标记为 `@internal`；
+组件接口见 [Component API](/zh/api/component)。
 
 ## 核心类
 
@@ -25,7 +25,7 @@ PurePHP 由几个核心类组成，它们协同工作提供强大的模板系统
 
 ### [Compile API](/zh/api/compile)
 `Pure\Compile\Compile`、`Shape`、`Renderer`、`Template` 与 `Slot` 介绍编译渲染与
-缓存/产物契约；Slot 规范表见 [Props 与 Slot](/zh/guide/props#slot-参考)。
+缓存/产物契约；Slot 参考见 [Props 与 Slot](/zh/guide/props#slot-参考)。
 
 ### [Component API](/zh/api/component)
 `Pure\Component\component()`、`register()`、`Call` 与契约属性介绍公共组件接口。

@@ -99,7 +99,7 @@ children, list slots, pages, and the contract checker.
 
 Use the [Troubleshooting](/guide/troubleshooting) page by symptom rather than
 searching through implementation details. If you are moving from another
-version or a source checkout, read [Upgrading & Releases](/guide/upgrading) first
+version or a source checkout, read [Upgrading](/guide/upgrading) first
 and rebuild artifacts deliberately.
 
 ## Next steps
@@ -107,5 +107,5 @@ and rebuild artifacts deliberately.
 - [Quick Start](/guide/getting-started) — install, autoload, and run the first page
 - [Examples](/guide/examples) — compare `pure`, `plain`, static `/cover`, counter, and XML routes
 - [Component API](/api/component) — public component helpers and PHPStan integration
-- [Compile API](/api/compile) — canonical Slot, Shape, Renderer, cache, and artifact reference
+- [Compile API](/api/compile) — Slot, Shape, Renderer, cache, and artifact reference
 - [Troubleshooting](/guide/troubleshooting) — fixes for common runtime and build symptoms

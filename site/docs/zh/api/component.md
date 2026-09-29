@@ -5,9 +5,9 @@ description: PurePHP 组件公共入口、Call 行为、Registry 边界、契约
 
 # 组件 API
 
-本页介绍 `Pure\Component` 周围的组件接口。`Slot` 构造器与值的完整表以
-[Props 与 Slot](/zh/guide/props#slot-参考) 为准；[组件指南](/zh/guide/components) 讲解组合，
-本页记录公共入口及其边界。
+本页介绍 `Pure\Component` 周围的组件接口：`component()`、`register()`、`Call`、
+契约属性与 `#[Template]`，以及 PHPStan 集成。`Slot` 构造器与值类型见
+[Props 与 Slot](/zh/guide/props#slot-参考)；组合方式见[组件指南](/zh/guide/components)。
 
 ## 公共接口一览
 
@@ -245,7 +245,7 @@ function CardShape(): Shape
 
 ## PHPStan 集成
 
-项目提供公共静态分析类，并在 `phpstan.neon` 中启用：
+包内提供公共静态分析类，请在自己的 `phpstan.neon` 中注册它们：
 
 - `Pure\StaticAnalysis\ComponentCallCollector` 与
   `Pure\StaticAnalysis\RegistryCallCollector` 收集注册项和字面量调用；
@@ -253,12 +253,23 @@ function CardShape(): Shape
   调用，而被分析项目注册的是 `Card`；
 - 该规则带 `@api` 标记，并报告标识符 `purephp.unknownComponent`。
 
-请运行完整项目分析，因为只有所有文件分析完成后，收集到的注册项才完整：
+```
+# phpstan.neon
+services:
+    -
+        class: Pure\StaticAnalysis\ComponentCallCollector
+        tags:
+            - phpstan.collector
+    -
+        class: Pure\StaticAnalysis\RegistryCallCollector
+        tags:
+            - phpstan.collector
 
-```bash
-composer phpstan
+rules:
+    - Pure\StaticAnalysis\UnknownComponentRule
 ```
 
+请分析整个项目而不是单个路径，因为只有所有文件都分析完成后，收集到的注册项才完整。
 单文件分析会跳过该规则。路径与 `component(__FUNCTION__)` 会按文件和函数上下文解析，
 不会被当成未知字面量。组件名来自数据时，请让动态名称留在应用边界，并在边界校验数据。
 
@@ -267,4 +278,4 @@ composer phpstan
 - [组件](/zh/guide/components)——组合、props、children 与页面
 - [编译 API](/zh/api/compile)——Shape、Renderer、Slot、缓存与产物 API
 - [故障排查](/zh/guide/troubleshooting)——Registry、prop 与产物症状
-- [升级与发布](/zh/guide/upgrading)——契约变化与重建步骤
+- [升级](/zh/guide/upgrading)——升级与重建步骤

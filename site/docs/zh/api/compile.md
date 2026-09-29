@@ -138,9 +138,9 @@ $shape([
 
 ## Slot 类型
 
-Slot 构造器、值类型、位置相关语义与错误路径的唯一规范表在
+Slot 构造器、值类型、位置相关语义与错误路径见
 [Props 与 Slot](/zh/guide/props#slot-参考)：它覆盖构造参数、位置相关的 value/raw 语义、
-修饰符与带路径的错误，本页不重复该表。
+修饰符与带路径的错误。
 
 使用 API 时请留意这两条边界：
 
@@ -299,18 +299,6 @@ Compile::guard(true); // 或 PURE_COMPILE_GUARD=1
 
 含 Slot 的树调用 `render()`、`print()` 和 `save()` 会抛出 `LogicException`，因为
 没有可绑定的数据。`toJSON()` 把 Slot 描述为 `['slot' => 'name']`。
-
-## 性能
-
-[规范性能快照](/zh/guide/compiled#性能)是渲染器、产物、缓存与页面级开销的唯一实测参考，
-并注明对应基准 commit、机器与记录日期。绝对结果会随 PHP 版本、opcache 与 CPU 变化，因此
-对照前应使用[基准源码](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
-复现相关路径：
-
-```bash
-php bench/compare.php
-php examples/bootstrap/bench.php
-```
 
 ## 可信标记与产物
 

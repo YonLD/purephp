@@ -18,12 +18,12 @@
 - [SVG and XML Support](https://yonld.github.io/purephp/guide/svg-xml.html.md): Prerequisites : Basic Usage; On this page : building SVG graphics and XML documents, and compiling them for export.
 - [PurePHP with Tailwind CSS](https://yonld.github.io/purephp/guide/tailwindcss.html.md): Prerequisites : Components; On this page : a pinned Tailwind CSS v4 build and accessible component examples.
 - [Troubleshooting](https://yonld.github.io/purephp/guide/troubleshooting.html.md): Symptom-based fixes for installation, slots, components, artifacts, caching, and examples.
-- [Upgrading & Releases](https://yonld.github.io/purephp/guide/upgrading.html.md): Update guidance, compatibility checks, and deployment steps for PurePHP.
+- [Upgrading](https://yonld.github.io/purephp/guide/upgrading.html.md): Requirements, upgrade steps, and rollback for PurePHP.
 - [Utility Functions](https://yonld.github.io/purephp/guide/utils.html.md): Prerequisites : Core Concepts; On this page : clx(), sty() and renderHTML() / renderXML().
 
 ## API Reference
 
-- [API Reference](https://yonld.github.io/purephp/api/index.html.md): This section documents the public rendering and component entry points.
+- [API Reference](https://yonld.github.io/purephp/api/index.html.md): The public rendering and component entry points. Each page lists what is public API and what is marked @internal; the Component API covers the component surface.
 - [Compile API](https://yonld.github.io/purephp/api/compile.html.md): Pure\Compile\Compile compiles a data-free shape tree into a flat PHP renderer.
 - [Component API](https://yonld.github.io/purephp/api/component.html.md): Public PurePHP component helpers, Call behavior, registry boundaries, contract attributes, Template, and PHPStan integration.
 - [HTML Class](https://yonld.github.io/purephp/api/html.html.md): Pure\Core\HTML extends the Tag class, specifically for HTML tags.
@@ -48,12 +48,12 @@
 - [SVG 和 XML 支持](https://yonld.github.io/purephp/zh/guide/svg-xml.html.md): 前置 ：基本用法； 本页 ：SVG 图形与 XML 文档的构建和编译导出。
 - [PurePHP 与 Tailwind CSS 集成](https://yonld.github.io/purephp/zh/guide/tailwindcss.html.md): 前置 ：组件； 本页 ：锁定 Tailwind CSS v4 版本并编写可访问的组件示例。
 - [故障排查](https://yonld.github.io/purephp/zh/guide/troubleshooting.html.md): 按症状排查安装、Slot、组件、产物、缓存和示例问题。
-- [升级与发布](https://yonld.github.io/purephp/zh/guide/upgrading.html.md): PurePHP 的更新步骤、兼容性检查与部署说明。
+- [升级](https://yonld.github.io/purephp/zh/guide/upgrading.html.md): PurePHP 的环境要求、升级步骤与回滚说明。
 - [工具函数](https://yonld.github.io/purephp/zh/guide/utils.html.md): 前置 ：核心概念； 本页 ：clx()、sty() 与 renderHTML() / renderXML()。
 
 ## 中文 API 参考 (Chinese API Reference)
 
-- [API 参考](https://yonld.github.io/purephp/zh/api/index.html.md): 本节介绍公共渲染与组件入口。它是概览，不承诺每个内部辅助函数都是稳定 API；请阅读各页的 边界说明，并查看 Component API 了解组件接口。
+- [API 参考](https://yonld.github.io/purephp/zh/api/index.html.md): 公共渲染与组件入口。各页都会说明哪些是公共 API、哪些标记为 @internal； 组件接口见 Component API。
 - [Compile API](https://yonld.github.io/purephp/zh/api/compile.html.md): Pure\Compile\Compile 把一棵不含数据的 Shape 树编译成扁平的 PHP 渲染器。 静态标记在编译期一次性转义，并作为字面量字符串块输出，因此渲染一个页面只比字符串拼接加上动态值转义略多一点开销。
 - [组件 API](https://yonld.github.io/purephp/zh/api/component.html.md): PurePHP 组件公共入口、Call 行为、Registry 边界、契约属性、Template 与 PHPStan 集成。
 - [HTML 类](https://yonld.github.io/purephp/zh/api/html.html.md): Pure\Core\HTML 继承自 Tag 类，专门用于 HTML 标签。

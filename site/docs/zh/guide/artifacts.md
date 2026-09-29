@@ -32,12 +32,11 @@ $page->save(__DIR__ . '/out.html', ['title' => 'Users']);
   `--list` 不编译，直接打印实际类型：`name -> file (component)`、
   `file (shape)`，以及带 `#[Template]` 的 `name -> file (template)`。`pure compile --check` 不写入任何
   文件，当产物过期或缺失时以退出码 1 结束，适合放在 CI 步骤中。`--plain` 会额外写出下文的
-  「无依赖视图」，`--check --plain` 同时校验两种形态。仓库中的示例都是 `*.cmp.php` 单元，
-  `vendor/bin/pure compile examples` 可一次编译全部。典型输出是
+  「无依赖视图」，`--check --plain` 同时校验两种形态。典型输出是
   `Card -> components/Card.cmp.php (component)`；独立模板会显示为
   `views/page.shape.php (shape)`，带 `#[Template]` 的构建器会显示为
   `pageShape -> views/page.cmp.php (template)`。
-- 产物的渲染结果与运行时编译器完全一致（测试按逐字节比对断言），并且读起来就像模板：
+- 产物的渲染结果与运行时编译器完全一致，并且读起来就像模板：
   标记仍是标记，动态值写成 `<?= ... ?>`，控制流使用替代语法，闭包只定义一次并导入类的短名。
   HTML 片段承载的是精确的渲染字节，因此不会被重新缩进。产物的 `Renderer::$source`
   为空——文件本身就是源码。
@@ -159,11 +158,10 @@ bootstrap 示例的 `PlainFeaturesController` 把同一份 bindings 交给示例
   使 `Compile::cachePath()` 里的渲染器失效，却绝不会使模板旁的产物失效，所以 `pure compile`
   是升级流程的一部分。`*.plain.php` 视图只在注释中携带版本号、没有可执行守卫，升级后会
   静默输出过期内容，直到 `pure compile --check --plain` 发现不一致。
-- 新鲜度用 `filemtime()` 比较，它的整秒粒度意味着与单元在同一秒写入的产物就已经可用。
-  这是有意为之：tar、rsync 或 git checkout 造成的 `touch` 式时间偏移很常见，精确比较会丢弃
-  这些产物并逐请求重新编译。哈希与 require 的实测对照见
-  [规范性能快照](/zh/guide/compiled#性能)，命令和源码见
-  [基准仓库快照](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)。
+- 新鲜度有两套规则，并不是同一个检查。请求时只要产物的 `filemtime()` 不比源单元旧就直接
+  使用：整秒粒度意味着与单元在同一秒写入的产物已经可用，tar、rsync 或 git checkout 造成的
+  `touch` 式时间偏移也不会丢弃它并逐请求重新编译。`pure compile --check` 则是更严格的构建期
+  闸门——它重新生成期望的源码，再与产物逐字节比较。
 - 两个会写出同一个产物的源文件（`a.shape.php` 紧邻 `a.cmp.php`）会被 `pure compile` 一并
   拒绝并返回退出码 1，因此 `a.pure.php` 归属哪个模板不会由发现顺序决定。
 - 加载 Shape 文件时产生的输出会被丢弃；`pure compile` 只输出构建信息。
@@ -245,18 +243,14 @@ components/Page.cmp.php:21: error: component 'Card': the call binds 'titel', whi
 开启哪些取决于部署形态：
 
 - **PHP-FPM**——开启 `Compile::cachePath()` 并构建产物。没有产物时，每个请求都要为该组件
-  重建 Shape 树、遍历指纹，然后才渲染。产物会把这部分工作替换为一次 `require`；实测对照见
-  [规范性能快照](/zh/guide/compiled#性能)与
-  [`bench/cache.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/cache.php)。
+  重建 Shape 树、遍历指纹，然后才渲染。产物会把这部分工作替换为一次 `require`。
 - **长驻 worker**（RoadRunner、Swoole、FrankenPHP）——开启 `Compile::cachePath()` 并保留
   内部绑定器的路径缓存（内联树用 `static $render`）；renderer 常驻内存，产物可选。
 - **`opcache.preload`**——preload 只把代码常驻内存，不会让 static 变量跨请求保留（PHP preload
   RFC 已明确说明），因此不能替代上面两种做法。
 
-开启 opcache 后，生产环境可以直接加载已编译的组件代码。页面级实测对照见
-[规范性能快照](/zh/guide/compiled#性能)；选择缓存布局前，请在实际部署中运行
-[`bench/registry.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/registry.php)
-脚本。
+开启 opcache 后，生产环境可以直接加载已编译的组件代码；选择缓存布局前，
+请在实际部署中自行实测。
 
 ## 无依赖导出（可选）
 

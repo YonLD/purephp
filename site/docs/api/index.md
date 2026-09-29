@@ -1,9 +1,8 @@
 # API Reference
 
-This section documents the public rendering and component entry points. It is
-an overview, not a promise that every internal helper is a stable API; see the
-boundary notes on each page and the [Component API](/api/component) for the
-component surface.
+The public rendering and component entry points. Each page lists what is public
+API and what is marked `@internal`; the [Component API](/api/component) covers
+the component surface.
 
 ## Core Classes
 
@@ -28,7 +27,7 @@ Represents raw HTML or XML content that bypasses escaping. Useful for including 
 
 ### [Compile API](/api/compile)
 `Pure\Compile\Compile`, `Shape`, `Renderer`, `Template` and `Slot` cover compiled
-rendering, cache/artifact contracts and the canonical Slot reference.
+rendering, cache/artifact contracts and the Slot reference.
 
 ### [Component API](/api/component)
 `Pure\Component\component()`, `register()`, `Call`, and the contract attributes

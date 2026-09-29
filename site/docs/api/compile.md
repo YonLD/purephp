@@ -162,10 +162,9 @@ $shape([
 
 ## Slot Types
 
-The canonical Slot table lives in [Props and Slots](/guide/props#slot-reference).
-It is the single reference for constructor values, position-sensitive
-value/raw semantics, modifiers and path-bearing errors; this API page does not
-duplicate it.
+Slot constructors and value types are in
+[Props and Slots](/guide/props#slot-reference): constructor values,
+position-sensitive value/raw semantics, modifiers and path-bearing errors.
 
 Keep these two boundaries in mind when using the API:
 
@@ -353,20 +352,6 @@ default), the checks cost one property read per render.
 `Tag::render()`, `print()` and `save()` throw a `LogicException` for trees that
 contain slots, because there is no data to bind. `toJSON()` describes slots as
 `['slot' => 'name']`.
-
-## Performance
-
-The [canonical performance snapshot](/guide/compiled#performance) is the single
-recorded reference for renderer, artifact, cache and page-level costs. It links
-the exact benchmark commit, machine and recording date. Absolute results move
-with the PHP version, opcache and CPU, so reproduce the relevant path with the
-[benchmark source](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
-before comparing:
-
-```bash
-php bench/compare.php
-php examples/bootstrap/bench.php
-```
 
 ## Trusted Markup and Artifacts
 

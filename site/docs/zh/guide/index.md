@@ -92,7 +92,7 @@ echo Card()->title('Title')->content('Content');
 ## 遇到问题时
 
 请按症状阅读[故障排查](/zh/guide/troubleshooting)，不要先钻进实现细节。如果要从
-其它版本或源码 checkout 迁移，先看[升级与发布](/zh/guide/upgrading)，再有意识地
+其它版本或源码 checkout 迁移，先看[升级](/zh/guide/upgrading)，再有意识地
 重建产物。
 
 ## 下一步
@@ -100,5 +100,5 @@ echo Card()->title('Title')->content('Content');
 - [快速开始](/zh/guide/getting-started)——安装、自动加载并运行第一页
 - [示例](/zh/guide/examples)——比较 `pure`、`plain`、静态 `/cover`、counter 与 XML 路由
 - [组件 API](/zh/api/component)——公共组件入口与 PHPStan 集成
-- [编译 API](/zh/api/compile)——Slot、Shape、Renderer、缓存与产物的规范参考
+- [编译 API](/zh/api/compile)——Slot、Shape、Renderer、缓存与产物参考
 - [故障排查](/zh/guide/troubleshooting)——常见运行时与构建问题的修复

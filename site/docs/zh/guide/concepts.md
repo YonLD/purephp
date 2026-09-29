@@ -220,47 +220,6 @@ Store::set('user', ['name' => 'John']);
 $user = Store::get('user');
 ```
 
-## 条件与混合列表
-
-上文的主表覆盖日常 Slot。列表项需要不同标记时，在数据层分派：在数据层构建每一项的标记，
-把拼好的结果交给 raw Slot。
-
-```php
-<?php
-
-use Pure\Compile\Compile;
-use Pure\Core\Slot;
-
-use function Pure\HTML\div;
-
-function Blocks(array $blocks): string
-{
-    $html = '';
-
-    foreach ($blocks as $block) {
-        $html .= $block['kind'] === 'link'
-            ? sprintf(
-                '<a href="%s">%s</a>',
-                htmlspecialchars($block['href'], ENT_QUOTES, 'UTF-8'),
-                htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8')
-            )
-            : htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8');
-    }
-
-    return $html;
-}
-
-$blocks = [
-    ['kind' => 'link', 'value' => '文档', 'href' => '/docs'],
-    ['kind' => 'text', 'value' => '你好'],
-];
-
-$shape = Compile::shape(div(Slot::raw('blocks')));
-$shape(['blocks' => Blocks($blocks)]);
-```
-
-完整示例见编译渲染指南的[混合列表](/zh/guide/compiled#混合列表)。
-
 ## 下一步
 
 - [Props 与 Slot](/zh/guide/props) - 数据如何绑定到 Shape

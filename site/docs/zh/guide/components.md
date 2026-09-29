@@ -253,8 +253,7 @@ prepare: #[Binds('title', 'desc')] static function (): array
 注解由 `pure check` 与开发守卫读取，渲染时完全不会查询；没有注解的单元行为与之前完全一致。
 
 一次组件调用会在直接渲染已编译树的基础上，增加调用对象、prop setter 与
-`prepare()` 调用。组件及端到端实测见[规范性能快照](/zh/guide/compiled#性能)与
-[基准源码](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)。
+`prepare()` 调用。哪些工作只做一次、哪些每次请求都做，见[性能](/zh/guide/compiled#性能)。
 
 ## 组合组件
 
@@ -381,9 +380,7 @@ function Tag(string $label): string
 - `pure compile --check` 让 CI 把过期产物拦下来；长驻 worker 会把已加载的 renderer 留在
   内存里，产物在那里是可选项。
 
-开启 opcache 后，生产环境可以直接加载已编译的产物。实测对照见
-[规范性能快照](/zh/guide/compiled#性能)与
-[基准源码](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)。
+开启 opcache 后，生产环境可以直接加载已编译的产物，二者组合就是生产路径。
 
 ## 即时渲染（片段）
 

@@ -40,13 +40,12 @@ template.
   compile. `pure compile --check` writes nothing and exits with code 1 when an
   artifact is stale or missing, which fits a CI step. `--plain` also writes the
   dependency-free view described below, and `--check --plain` covers both
-  flavors. The repository examples ship `*.cmp.php` units, so
-  `vendor/bin/pure compile examples` compiles them all. A typical `--list` line
+  flavors. A typical `--list` line
   is `Card -> components/Card.cmp.php (component)`; a standalone template is
   reported as `views/page.shape.php (shape)`, and a `#[Template]` builder as
   `pageShape -> views/page.cmp.php (template)`.
-- Artifacts render the same output as the runtime compiler (asserted byte for
-  byte by the tests) and read as a template: markup stays markup, values become
+- Artifacts render the same output as the runtime compiler and read as a
+  template: markup stays markup, values become
   `<?= ... ?>`, control flow uses the alternative syntax, and the closure is
   defined once with imported short class names. HTML runs keep the exact
   rendered bytes, so they are never re-indented. `Renderer::$source` is empty
@@ -183,13 +182,13 @@ compare the flavors while developing.
   your templates, so `pure compile` is part of an upgrade. `*.plain.php` views
   carry the version in a comment but have no executable guard, so they silently
   serve stale output until `pure compile --check --plain` catches the mismatch.
-- Freshness is compared with `filemtime()`, whose whole-second granularity means
-  an artifact written in the same second as its unit already serves it. This is
-  deliberate: `touch`-style skew from a tar, rsync or git checkout is common,
-  and an exact comparison would discard those artifacts and recompile them per
-  request. The recorded hash-versus-require comparison is in the
-  [canonical performance snapshot](/guide/compiled#performance); commands and
-  source are in the [benchmark repository snapshot](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench).
+- Two freshness rules apply, and they are not the same check. At request time an
+  artifact is served whenever its `filemtime()` is not older than its source
+  unit: whole-second granularity means an artifact written in the same second
+  as its unit already serves, and `touch`-style skew from a tar, rsync or git
+  checkout does not discard it and recompile per request. `pure compile --check`
+  is the stricter build-time gate — it regenerates the expected source and
+  compares it with the artifact byte for byte.
 - Two source files that would write the same artifact (`a.shape.php` beside
   `a.cmp.php`) are both rejected by `pure compile` with exit code 1, so
   discovery order cannot decide which template owns `a.pure.php`.
@@ -298,9 +297,7 @@ What to enable depends on the deployment:
 - **PHP-FPM** — enable `Compile::cachePath()` and build artifacts. Without an
   artifact, every request rebuilds the component's shape tree and walks its
   fingerprint before rendering. An artifact replaces that work with one
-  `require`; see the [canonical performance snapshot](/guide/compiled#performance)
-  and [`bench/cache.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/cache.php)
-  for the recorded comparison.
+  `require`.
 - **Long-running workers** (RoadRunner, Swoole, FrankenPHP) — enable
   `Compile::cachePath()`; the internal per-path binder cache and
   `static $render` for inline trees keep the renderer in memory, so artifacts
@@ -310,10 +307,7 @@ What to enable depends on the deployment:
   so it is not a substitute for either of the above.
 
 With opcache, artifacts let production load compiled component code directly.
-The recorded page-level comparison is in the
-[canonical performance snapshot](/guide/compiled#performance); run
-[`bench/registry.php`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/registry.php)
-on your own deployment before choosing a cache layout.
+Measure your own deployment before choosing a cache layout.
 
 ## Dependency-Free Exports (Optional)
 

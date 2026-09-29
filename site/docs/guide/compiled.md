@@ -56,8 +56,7 @@ paths share the same escaping implementation.
 
 The slots a template can use (`Slot::value()`, `Slot::raw()`, `Slot::child()`,
 `Slot::each()`, `Slot::if()`), their modifiers, value coercion and the missing
-data rules are documented once in [Props and Slots](/guide/props#slot-reference);
-this page does not repeat them.
+data rules are in [Props and Slots](/guide/props#slot-reference).
 
 ## Scope and Missing Data
 
@@ -204,38 +203,17 @@ requests load compiled renderers — see
 
 ## Performance
 
-This section is the canonical recorded performance reference for the
-documentation. The snapshot below comes from
-[`bench/README.md` at commit `c9b33e3`](https://github.com/YonLD/purephp/blob/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench/README.md#recorded-numbers),
-with the benchmark sources pinned to
-[that same commit](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench).
-`bench/compare.php` used 200 rows (about 604 rendered elements) for 3000
-iterations on an AMD Ryzen 5 7500F running Linux with PHP 8.4.24 CLI (NTS,
-opcache 8.4.24), recorded 2026-09-16.
+What a page costs depends on how much work it repeats:
 
-| Path | No opcache | Opcache | Opcache + JIT |
-| --- | ---: | ---: | ---: |
-| build tree + `Tag::render()` | 631.0 µs | 608.3 µs | 433.8 µs |
-| compiled shape + data | 141.7 µs | 135.2 µs | 107.9 µs |
-| render only (tree reused) | 224.2 µs | 212.4 µs | 163.5 µs |
-| compiled static tree (literal) | 0.1 µs | 0.1 µs | 0.2 µs |
-| end-to-end speedup | 4.5× | 4.5× | 4.0× |
+- compiling a shape is a one-time cost per process, not a per-request cost;
+- a precompiled artifact replaces building the shape tree and walking its
+  fingerprint with a single `require`;
+- a plain view is the cheapest form: values go straight into
+  `htmlspecialchars()` with no runtime accessor calls.
 
-Treat these as one recorded run, not a promise for another CPU or PHP build. The
-same source snapshot also documents artifact loading (`bench/artifact.php`),
-renderer-cache behavior (`bench/cache.php`), component loading
-(`bench/registry.php`) and a full page (`examples/bootstrap/bench.php`). Use
-those scripts on the target deployment before choosing between workers, the
+These costs move with the PHP version, opcache and the CPU, so measure the path
+that matters to you on your own deployment before choosing between workers, the
 runtime cache and precompiled artifacts.
-
-The supporting rows from that snapshot: a precompiled artifact takes 38–67 µs to
-`require` cold and ~25 µs warm, at 1.4–2.5 µs per render (`bench/artifact.php`);
-the renderer cache takes ~0.78 ms cold and ~0.26 ms warm (`bench/cache.php`);
-with opcache, 22 component artifacts load in 10–14 µs in total
-(`bench/registry.php`); and the example page runs ~104 µs as a page function and
-~20 µs as a plain view (`examples/bootstrap/bench.php`). Validating content costs
-more than compiling it: hashing every unit measured ~7 µs per file and reading
-each artifact header ~4 µs, against ~0.5 µs to load the artifact with opcache.
 
 ## Trusted Markup and Deployment
 

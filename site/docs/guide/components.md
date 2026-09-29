@@ -284,10 +284,9 @@ never consulted while rendering, and a unit without them behaves exactly as
 before.
 
 A component call adds the call object, prop setters and `prepare()` invocation
-to direct rendering of a compiled tree. See the
-[canonical performance snapshot](/guide/compiled#performance) and the
-[benchmark source](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
-for component and end-to-end measurements.
+to direct rendering of a compiled tree. See
+[Performance](/guide/compiled#performance) for what is paid once and what is
+paid per request.
 
 ## Composing Components
 
@@ -425,13 +424,10 @@ unit does not need a user-written `static` variable.
 - `pure compile --check` keeps artifacts fresh in CI; a long-running worker
   keeps the loaded renderer in memory, so artifacts are optional there.
 
-A component call costs about two microseconds more than rendering a compiled
-tree directly: the call object, the prop setters and the `prepare()` invocation.
-With opcache, requiring the artifacts of a whole page costs about half a
-microsecond per component, so artifacts plus opcache are the production path.
-See the [canonical performance snapshot](/guide/compiled#performance) and the
-[benchmark source](https://github.com/YonLD/purephp/tree/c9b33e3adc9c15fbdaa16b749b1cb2c5add6ad16/bench)
-for the recorded comparison.
+A component call adds a little work to rendering a compiled tree directly: the
+call object, the prop setters and the `prepare()` invocation. With artifacts and
+opcache, loading a component is a single `require`, so that combination is the
+production path.
 
 ## Immediate Rendering (Snippets)
 

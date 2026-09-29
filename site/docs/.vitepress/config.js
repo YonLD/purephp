@@ -108,7 +108,7 @@ export default {
           text: '支持与维护',
           items: [
             { text: '故障排查', link: '/zh/guide/troubleshooting' },
-            { text: '升级与发布', link: '/zh/guide/upgrading' }
+            { text: '升级', link: '/zh/guide/upgrading' }
           ]
         },
         {
@@ -185,7 +185,7 @@ export default {
           text: 'Support & Maintenance',
           items: [
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
-            { text: 'Upgrading & Releases', link: '/guide/upgrading' }
+            { text: 'Upgrading', link: '/guide/upgrading' }
           ]
         },
         {

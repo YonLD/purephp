@@ -29,12 +29,16 @@ echo div(h1('Hello'))->render();
 
 ### 找不到 `vendor/bin/pure`
 
-在项目根目录安装依赖并执行：
+在通过 Composer 安装了本包的应用里，`composer install` 会创建 `vendor/bin/pure`
+代理，在项目根目录执行它即可：
 
 ```bash
 composer install
 vendor/bin/pure --help
 ```
+
+在**本仓库的克隆**里没有 `vendor/bin/pure`：Composer 只为已安装的依赖包创建这个
+代理，请在仓库根目录改用 `php bin/pure`。
 
 示例同样依赖根目录的 `vendor/autoload.php`；从其它工作目录启动文件不会改变
 这个要求。
@@ -73,7 +77,7 @@ Slot::value('title')->default('Untitled')
 ```
 
 必填的 value/raw Slot 也会拒绝显式 `null`。请传入真正的文本，或改用可选 Slot；
-不要用 `null` 表示“缺失”。完整的 Slot 规范见 [编译 API](/zh/api/compile#slot-类型)
+不要用 `null` 表示“缺失”。Slot 参考见 [编译 API](/zh/api/compile#slot-类型)
 与 [Props 与 Slot](/zh/guide/props)。
 
 ### child 或 each Slot 的值被拒绝
@@ -193,7 +197,7 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 
 ### `pure compile --list` 出现不熟悉的单元类型
 
-列表描述的是发现的文件，不是 VitePress 页面：
+列表描述的是发现的文件：
 
 - `(component)` 是已注册的 `*.cmp.php` 单元；
 - `(shape)` 是独立的 `*.shape.php` 模板；
@@ -207,7 +211,7 @@ Compile::cachePath(__DIR__ . '/var/cache/purephp');
 显式生成它：
 
 ```bash
-vendor/bin/pure compile --plain examples/bootstrap
+php bin/pure compile --plain examples/bootstrap
 ```
 
 `*.plain.php` 只包含标记与原生 PHP。加载器必须先把 bindings 提取为局部变量再
@@ -221,15 +225,12 @@ vendor/bin/pure compile --plain examples/bootstrap
 和注册项进行比较。请在被分析项目中用 `register(Icon(...))` 注册单元，或使用与
 调用函数一致的名称。路径和 `component(__FUNCTION__)` 会按文件/函数上下文解析。
 
-运行项目配置的分析：
+如果规则没有生效，请在自己的 `phpstan.neon` 中注册它，配置见
+[组件 API](/zh/api/component#phpstan-集成)。该规则是项目级检查，请分析整个项目而不是
+单个文件：只有所有文件都分析完成后，注册项才完整。
 
-```bash
-composer phpstan
-```
-
-该规则有意要求完整项目分析；单文件分析看不到全部注册项。`pure check` 还会加载发现的
-单元文件并调用 factory 来校验契约，因此只应对可信项目代码运行，并保持 factory
-没有副作用。
+`pure check` 还会加载发现的单元文件并调用 factory 来校验契约，因此只应对可信项目代码运行，
+并保持 factory 没有副作用。
 
 ### `Registry` 标为 `@internal`
 

@@ -254,49 +254,6 @@ Store::set('user', ['name' => 'John']);
 $user = Store::get('user');
 ```
 
-## Conditional Lists
-
-The main table above covers the everyday slots. A list whose items need
-different markup is dispatched in the data layer: build each item's markup
-there and pass the joined result into a raw slot.
-
-```php
-<?php
-
-use Pure\Compile\Compile;
-use Pure\Core\Slot;
-
-use function Pure\HTML\div;
-
-function Blocks(array $blocks): string
-{
-    $html = '';
-
-    foreach ($blocks as $block) {
-        $html .= $block['kind'] === 'link'
-            ? sprintf(
-                '<a href="%s">%s</a>',
-                htmlspecialchars($block['href'], ENT_QUOTES, 'UTF-8'),
-                htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8')
-            )
-            : htmlspecialchars($block['value'], ENT_QUOTES, 'UTF-8');
-    }
-
-    return $html;
-}
-
-$blocks = [
-    ['kind' => 'link', 'value' => 'Docs', 'href' => '/docs'],
-    ['kind' => 'text', 'value' => 'Hello'],
-];
-
-$shape = Compile::shape(div(Slot::raw('blocks')));
-$shape(['blocks' => Blocks($blocks)]);
-```
-
-See [Mixed lists](/guide/compiled#mixed-lists) in the compiled guide for the
-full treatment.
-
 ## Next Steps
 
 - [Props and Slots](/guide/props) - How data is bound to shapes

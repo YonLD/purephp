@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-29
+
 ### Added
 
 - A list item may be the value of the one slot its item shape renders, so a
@@ -67,9 +69,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covering both messages a wrong suffix produces (English and Chinese).
 - The artifacts guide documents the `path:line: level: message` format, the
   stdout/stderr split and the three exit codes (English and Chinese).
+- The examples guide's repository workflow runs the in-repo binary as
+  `php bin/pure` — a clone has no `vendor/bin/pure`, because Composer creates
+  that proxy for installed packages only — and the troubleshooting entry
+  distinguishes the clone from an application that installed the package
+  (English and Chinese).
+- The guides read as usage documentation rather than project notes: the
+  performance section states the cost model (what is paid once, per request, or
+  per view) instead of the benchmark machine, date and per-case numbers; the
+  upgrade page lists requirements instead of compatibility claims; and the
+  documentation-site, license and CI remarks are gone (English and Chinese).
+- The upgrading pages are trimmed to the requirements, the upgrade and rebuild
+  checklist and the rollback steps; this changelog is the single place that
+  states what changed and what a reader has to do about it (English and
+  Chinese).
+- `composer.json` states the project's `homepage` and its `support.source` /
+  `support.issues` URLs, so Packagist shows them and the package's repository
+  can be derived from its own metadata instead of the submitter's form.
 - The Chinese upgrading page no longer claims the changelog describes an
-  untagged release; `1.0.0` is tagged. Both pages now tell a reader arriving
-  from a search result how to check that the page matches their version.
+  untagged release; `1.0.0` is tagged.
 - The Chinese site's own labels (language menu, outline, footer, previous and
   next) are translated instead of falling back to the shared English chrome.
 - The event-counter example attaches both buttons with `addEventListener`, which
@@ -639,4 +657,5 @@ First public release.
   views now follow `Tag::isDocumentRoot()`.
 
 [Unreleased]: https://github.com/YonLD/purephp/commits/main
+[1.1.0]: https://github.com/YonLD/purephp/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/YonLD/purephp/releases/tag/v1.0.0

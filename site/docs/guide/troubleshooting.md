@@ -31,13 +31,17 @@ example omits the autoloader, it is not a standalone script.
 
 ### A command cannot find `vendor/bin/pure`
 
-Install dependencies with `composer install`, then invoke the binary from the
-project root:
+In an application that installed the package, `composer install` creates the
+`vendor/bin/pure` proxy; invoke it from the project root:
 
 ```bash
 composer install
 vendor/bin/pure --help
 ```
+
+In a clone of this repository there is no `vendor/bin/pure`, because Composer
+creates that proxy for installed packages only: run `php bin/pure` from the
+repository root instead.
 
 The examples also use the root `vendor/autoload.php`; running a file from another
 working directory does not change that requirement.
@@ -77,7 +81,7 @@ Slot::value('title')->default('Untitled')
 
 A required value or raw slot also rejects an explicit `null`. Pass the intended
 text or a different, optional slot instead of using `null` to mean “missing”.
-See the canonical [Compile API](/api/compile#slot-types) and
+See the [Compile API](/api/compile#slot-types) and
 [Props and Slots](/guide/props).
 
 ### A child or each-slot value is rejected
@@ -210,7 +214,7 @@ in-memory renderers; it does not delete cache files. See
 
 ### `pure compile --list` shows an unexpected unit kind
 
-The list describes discovered files, not a VitePress page:
+The list describes the discovered files:
 
 - `(component)` is a registered `*.cmp.php` unit;
 - `(shape)` is a standalone `*.shape.php` template;
@@ -224,7 +228,7 @@ root, or a standalone template rendered by the caller.
 Generate it explicitly:
 
 ```bash
-vendor/bin/pure compile --plain examples/bootstrap
+php bin/pure compile --plain examples/bootstrap
 ```
 
 The `*.plain.php` view is markup and native PHP. The loader must extract the
@@ -241,16 +245,14 @@ with registrations in a full-project analysis. Register the unit with
 call function registers. Paths and `component(__FUNCTION__)` are resolved by
 their file/function context.
 
-Run the repository's configured analysis with:
+If the rule is not running, register it in your own `phpstan.neon` — the
+configuration is in [Component API](/api/component#phpstan-integration). The
+rule is a project-wide check, so analyse the whole project rather than a single
+file: registrations are only complete once every file has been analysed.
 
-```bash
-composer phpstan
-```
-
-The rule is intentionally a project-wide check; single-file analysis cannot see
-all registrations. `pure check` also loads discovered unit files and invokes
-their factories to validate contracts, so run it only for trusted project code
-and keep factories free of side effects.
+`pure check` also loads discovered unit files and invokes their factories to
+validate contracts, so run it only for trusted project code and keep factories
+free of side effects.
 
 ### `Registry` is marked `@internal`
 

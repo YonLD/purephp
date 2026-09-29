@@ -56,7 +56,7 @@ echo Card()->title('Card Title')->content('Card Content');
 
 ## children、列表与按钮
 
-这个 README 风格的单元在一个 Shape 中展示三条常见数据路径：通过保留 raw Slot
+这个单元在一个 Shape 中展示三条常见数据路径：通过保留 raw Slot
 传入 children、用 `Slot::each()` 重复记录，以及用 value Slot 设置按钮属性。
 
 ```php
@@ -102,20 +102,24 @@ children 传给调用函数，列表可用 `Slot::each()` 绑定；组件 `Call`
 
 ## 准备仓库
 
-先安装根目录的 Composer 依赖，再编译示例路径：
+示例不包含在 Composer 安装包内，请先克隆仓库，并在仓库根目录执行下面的命令。克隆里
+没有 `vendor/bin/pure`——Composer 只为已安装的依赖包创建这个代理——所以请使用
+`bin/pure`：
 
 ```bash
+git clone https://github.com/YonLD/purephp.git
+cd purephp
 composer install
-vendor/bin/pure compile --plain examples/bootstrap
-vendor/bin/pure compile --plain examples/event-counter
-vendor/bin/pure compile --plain examples/xml
+php bin/pure compile --plain examples/bootstrap
+php bin/pure compile --plain examples/event-counter
+php bin/pure compile --plain examples/xml
 ```
 
 用 `--list` 查看发现的单元。输出类型是 `(component)`、`(shape)` 与
 `(template)`；页面不是单独的文件类型：
 
 ```bash
-vendor/bin/pure compile --list examples
+php bin/pure compile --list examples
 ```
 
 ## Bootstrap MVC 示例
@@ -199,12 +203,5 @@ XML 声明由 `renderXML()` 提供，模板只描述树结构。`AddressShape()`
 文档时还会包含文档声明。plain 路径适合只部署 `public/` 与 `views/`、不安装
 PurePHP 的环境。它是基于 include 的视图，不是第二套模板语言。
 
-示例变更后可在 CI 中运行检查：
-
-```bash
-vendor/bin/pure compile --check --plain examples
-vendor/bin/pure check examples
-```
-
 路由缺失、产物过期或片段被转义时，请看[故障排查](/zh/guide/troubleshooting)。
-发布相关的重建步骤见[升级与发布](/zh/guide/upgrading)。
+发布相关的重建步骤见[升级](/zh/guide/upgrading)。
